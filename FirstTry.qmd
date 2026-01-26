@@ -11,10 +11,10 @@ library(dplyr)
 library(lubridate)
 library(knitr)
 library(writexl)
-attacks <- read_excel("C:/Users/ctr22/Downloads/model/attacks.xlsx")
-write_xlsx(attacks, "attacks.xlsx")
-injuries <- read_excel("C:/Users/ctr22/Downloads/model/injuries.xlsx")
-write_xlsx(injuries, "injuries.xlsx")
+attacks <- read_excel("attacks.xlsx")
+
+injuries <- read_excel("injuries.xlsx")
+
 ```
 
 ```{r}
