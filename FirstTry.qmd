@@ -1,0 +1,312 @@
+---
+title: "FirstTry"
+format: pdf
+editor: visual
+---
+
+```{r}
+library(readxl)
+library(tidyverse)
+library(dplyr)
+library(lubridate)
+library(knitr)
+attacks <- read_excel("C:/Users/ctr22/Downloads/model/attacks.xlsx")
+injuries <- read_excel("C:/Users/ctr22/Downloads/model/injuries.xlsx")
+```
+
+```{r}
+attacks <- attacks |>
+  mutate(period_start = ymd(period_start, tz = "UTC"))
+
+attacks <- attacks |>
+  arrange(desc(period_start))
+
+injuries <- injuries |>
+  arrange(desc(period_start))
+
+dataset <- full_join(injuries, attacks, by = "period_start")
+
+dataset <- dataset |>
+  drop_na()
+
+```
+
+```{r}
+# convert period_start to Date if needed
+dataset$period_start <- as.Date(dataset$period_start)  # adjust format if necessary: as.Date(x, "%Y-%m-%d")
+
+# Optional: create a numeric time variable (days since first period)
+dataset$time_days <- as.numeric(difftime(dataset$period_start, min(dataset$period_start, na.rm=TRUE), units="days"))
+
+# Optional: if you have period length (exposure) use it as `exposure` (e.g., days, population)
+# If you don't have one, omit offset or use 1 as exposure.
+# dataset$exposure <- dataset$period_end - dataset$period_start  # example; convert to numeric days
+
+```
+
+```{r}
+# outcomes (raw column names)
+outcomes <- c("Burn", "CMF", "Limb", "NTD", "Soft Tissue", "Wound Care")
+
+# predictors (already backticked)
+preds <- c("`Air/drone strike`",
+           "`Ground Attacks`",
+           "`Shelling/artillery/missile attack`",
+           "`Civil Unrest`",
+           "`Other`")
+
+# base formula string
+form_str <- paste("OUTCOME ~",
+                  paste(preds, collapse = " + "),
+                  "+ time_days")
+
+fit_poisson <- function(outcome_name) {
+  # backtick outcome if needed
+  outcome_bt <- paste0("`", outcome_name, "`")
+  
+  f <- as.formula(sub("OUTCOME", outcome_bt, form_str))
+  
+  glm(f, family = poisson(link = "log"), data = dataset)
+}
+
+models_poisson <- lapply(outcomes, fit_poisson)
+names(models_poisson) <- outcomes
+
+```
+
+```{r}
+check_dispersion <- function(mod) {
+  rdf <- df.residual(mod)
+  rp <- residuals(mod, type = "pearson")
+  disp <- sum(rp^2) / rdf
+  return(disp)
+}
+
+sapply(models_poisson, check_dispersion)
+# If dispersion >> 1 (rule of thumb: > 1.5 or 2), use negative binomial.
+
+```
+
+
+
+LALALAA
+
+```{r}
+# ---------- required packages ----------
+
+library(tidyverse); library(lubridate)
+library(glmmTMB); library(MASS); library(broom)
+library(compositions); library(sandwich); library(lmtest)
+
+# ---------- helper: show names and detect columns ----------
+print("Column names in dataset:")
+print(names(dataset))
+
+# 1) detect date column (prefer period_start if present)
+date_col <- NULL
+cands <- c("period_start","date","start_date","period.start","period_start.x")
+for (c in cands) if (c %in% names(dataset)) date_col <- c
+if (is.null(date_col)) {
+  # try any column containing 'period' or 'date'
+  date_col <- names(dataset)[str_detect(names(dataset), regex("period|date", ignore_case=TRUE))]
+  if (length(date_col) > 0) date_col <- date_col[1] else date_col <- NULL
+}
+if (is.null(date_col)) stop("Couldn't find a date column: set `date_col` manually.")
+message("Using date column: ", date_col)
+
+# 2) detect attack columns by common attack-keywords (case-insensitive)
+attack_pattern <- regex("air|drone|ground|shelling|artillery|missile|civil|unrest|other", ignore_case = TRUE)
+attack_cols <- names(dataset)[str_detect(names(dataset), attack_pattern)]
+message("Detected attack columns: ", paste(attack_cols, collapse = ", "))
+
+# 3) detect injury columns (the five patient categories) by excluding date/time/attack/ids
+exclude_cols <- c(date_col, attack_cols, "period_id", "time_days", "period", "period.x", "period.y",
+                  "period_end", "period_end.x", "period_end.y")
+# numeric columns that are not in exclude list → likely counts (injuries or other)
+num_cols <- names(dataset)[sapply(dataset, is.numeric)]
+injury_candidate_cols <- setdiff(num_cols, exclude_cols)
+message("Numeric columns (candidates): ", paste(injury_candidate_cols, collapse = ", "))
+
+# Heuristic: injury columns usually have short names like 'Burn','Limb','Soft Tissue' etc. 
+# Let user override if heuristic wrong:
+injury_cols <- injury_candidate_cols
+if (length(injury_cols) < 2) {
+  stop("Could not confidently detect injury count columns. Please set `injury_cols` manually.")
+}
+message("Assuming injury columns: ", paste(injury_cols, collapse = ", "))
+
+# 4) detect hospital id column: look for a non-numeric column with moderate number of unique values
+non_num_cols <- names(dataset)[!sapply(dataset, is.numeric)]
+# prefer common names
+possible_hosp <- intersect(non_num_cols, c("hospital","site","hospital_id","hospital.name","facility"))
+if (length(possible_hosp)==0) {
+  uniq_counts <- map_int(non_num_cols, ~n_distinct(dataset[[.x]]))
+  # choose a non-numeric column with >1 and <= number_of_rows/2 unique values
+  possible_hosp <- non_num_cols[uniq_counts > 1 & uniq_counts <= nrow(dataset)/2]
+}
+if (length(possible_hosp)==0) stop("Could not detect a hospital identifier column; set `hospital_col` manually.")
+hospital_col <- possible_hosp[1]
+message("Using hospital id column: ", hospital_col)
+
+# 5) exposure / offset column: if you have catchment population or time_days use it; otherwise use time_days if exists.
+offset_col <- NULL
+if ("population" %in% names(dataset)) offset_col <- "population"
+if ("time_days" %in% names(dataset)) offset_col <- "time_days"  # two-week periods -> exposure length
+if (is.null(offset_col)) {
+  message("No offset detected; models will be fit without an offset. If you have a population/catchment column, set `offset_col`.")
+} else message("Using offset/exposure column: ", offset_col)
+
+# ---------- prepare analysis dataframe ----------
+df <- dataset %>%
+  mutate(.date = as.Date(.data[[date_col]])) %>%
+  arrange(.data[[hospital_col]], .date) %>%
+  # build a simple period index for plotting/lagging
+  group_by(.data[[hospital_col]]) %>%
+  mutate(period_idx = row_number()) %>%
+  ungroup()
+
+# sum injuries across detected injury columns (total_injuries)
+df <- df %>% mutate(total_injuries = rowSums(select(., all_of(injury_cols)), na.rm = TRUE))
+
+# sum attacks across detected attack columns if present
+if (length(attack_cols)>0) {
+  df <- df %>% mutate(attacks_total = rowSums(select(., all_of(attack_cols)), na.rm = TRUE))
+} else {
+  df <- df %>% mutate(attacks_total = 0)
+}
+
+# offset: convert time_days to exposure (in months or per 14 days). Use 14 days if time_days missing and rows are fixed 2-week.
+if (!is.null(offset_col)) {
+  # use offset as days (time exposure), convert to person-time if population exists; otherwise use time_days directly
+  exposure <- df[[offset_col]]
+  # offset on log-scale: use days as exposure (per day), or if population present use pop * days
+  df <- df %>% mutate(log_offset = log(pmax(1, exposure)))
+} else {
+  # default offset = log(1)
+  df <- df %>% mutate(log_offset = 0)
+}
+
+# quick look
+message("Prepared data rows: ", nrow(df))
+print(df %>% select(all_of(c(hospital_col, ".date", "period_idx", "total_injuries", "attacks_total", "log_offset"))) %>% head(6))
+
+# ---------- 1) Basic Poisson model ----------
+mod_pois <- glm(total_injuries ~ attacks_total + factor(period_idx),
+                family = poisson(link = "log"),
+                offset = log_offset,
+                data = df)
+summary(mod_pois)
+
+# robust SE and IRR
+coefs <- broom::tidy(mod_pois, conf.int = TRUE)
+coefs <- coefs %>% mutate(IRR = exp(estimate), IRR_l = exp(conf.low), IRR_u = exp(conf.high))
+print(coefs %>% filter(term == "attacks_total"))
+
+# ---------- 2) Overdispersion check ----------
+pearson_chisq <- sum(residuals(mod_pois, type = "pearson")^2, na.rm = TRUE)
+dispersion_ratio <- pearson_chisq / df.residual(mod_pois)
+message("Dispersion ratio (Pearson chi-square / df): ", round(dispersion_ratio,3))
+if (dispersion_ratio > 1.5) message("Evidence of overdispersion -> consider Negative Binomial")
+
+# ---------- 3) Negative Binomial ----------
+mod_nb <- tryCatch({
+  MASS::glm.nb(total_injuries ~ attacks_total + factor(period_idx) + offset(log_offset),
+               data = df)
+}, error = function(e) {
+  message("glm.nb failed: ", e$message); NULL
+})
+if (!is.null(mod_nb)) {
+  print(summary(mod_nb))
+  nb_coefs <- broom::tidy(mod_nb, conf.int = TRUE)
+  nb_coefs <- nb_coefs %>% mutate(IRR = exp(estimate), IRR_l = exp(conf.low), IRR_u = exp(conf.high))
+  print(nb_coefs %>% filter(term == "attacks_total"))
+}
+
+# ---------- 4) Mixed-effects Negative Binomial (hospital random intercept) ----------
+# only run if multiple hospitals present
+if (n_distinct(df[[hospital_col]]) > 1) {
+  mod_mixed <- glmmTMB(total_injuries ~ attacks_total + factor(period_idx) + (1 | .data[[hospital_col]]) + offset(log_offset),
+                       family = nbinom2(), data = df)
+  print(summary(mod_mixed))
+  # fixed effects -> IRR
+  fixefs <- fixef(mod_mixed)$cond
+  message("Fixed effects IRR for attacks_total: ", round(exp(fixefs["attacks_total"]),3))
+} else message("Only one hospital present; skipping mixed model.")
+
+# ---------- 5) Add lags (discrete-time self-excitatory approximation) ----------
+df <- df %>%
+  group_by(.data[[hospital_col]]) %>%
+  arrange(.date) %>%
+  mutate(total_injuries_lag1 = lag(total_injuries, 1),
+         attacks_lag1 = lag(attacks_total, 1)) %>%
+  ungroup()
+
+mod_nb_lag <- tryCatch({
+  glmmTMB(total_injuries ~ attacks_total + attacks_lag1 + total_injuries_lag1 + factor(period_idx) +
+           (1 | .data[[hospital_col]]) + offset(log_offset),
+           family = nbinom2(), data = df)
+}, error = function(e) {
+  message("glmmTMB lagged model failed: ", e$message); NULL
+})
+if (!is.null(mod_nb_lag)) print(summary(mod_nb_lag))
+
+# ---------- 6) Compositional approach (CLR) on injury category proportions ----------
+# We will CLR-transform the injury columns for each row and regress one CLR coordinate on attacks_total
+comp_mat <- as.matrix(df %>% select(all_of(injury_cols)))
+# add small pseudocount to avoid zeros
+comp_mat <- comp_mat + 0.5
+clr_mat <- compositions::clr(comp_mat)
+colnames(clr_mat) <- paste0("clr_", make.names(injury_cols))
+df_clr <- bind_cols(df, as.data.frame(clr_mat))
+
+# Example: regress CLR of first injury column on attacks_total (and hospital fixed effects)
+clr_target <- colnames(clr_mat)[1]
+form_clr <- as.formula(paste0(clr_target, " ~ attacks_total + factor(period_idx) + (1|", hospital_col, ")"))
+# use glmmTMB for CLR response (Gaussian)
+mod_clr <- tryCatch({
+  glmmTMB(as.formula(paste0(clr_target, " ~ attacks_total + factor(period_idx) + (1|", hospital_col, ")")),
+         family = gaussian(), data = df_clr)
+}, error = function(e) {
+  message("CLR model failed: ", e$message); NULL
+})
+if (!is.null(mod_clr)) print(summary(mod_clr))
+
+# bootstrap example for CLR coefficient (attacks_total effect)
+set.seed(42)
+boot_fun <- function(d, i) {
+  dd <- d[i, ]
+  fit <- lm(as.formula(paste0(clr_target, " ~ attacks_total")), data = dd)
+  coef(fit)["attacks_total"]
+}
+# simple bootstrap with base sample (may be slow)
+R <- 500
+boot_coefs <- replicate(R, {
+  i <- sample(seq_len(nrow(df_clr)), replace = TRUE)
+  tryCatch(boot_fun(df_clr, i), error = function(e) NA)
+})
+boot_est <- mean(boot_coefs, na.rm = TRUE)
+boot_ci <- quantile(boot_coefs, probs = c(0.025, 0.975), na.rm = TRUE)
+message("Bootstrap estimate for CLR(", clr_target, ") attack effect = ", round(boot_est,4),
+        " 95%CI [", round(boot_ci[1],4), ", ", round(boot_ci[2],4), "]")
+
+# ---------- 7) Diagnostics & suggestions ----------
+# AIC compare (where applicable)
+models_for_aic <- list()
+models_for_aic$poisson <- mod_pois
+if (!is.null(mod_nb)) models_for_aic$nb <- mod_nb
+if (exists("mod_mixed") && !is.null(mod_mixed)) models_for_aic$mixed <- mod_mixed
+aic_df <- tibble(model = names(models_for_aic),
+                 AIC = map_dbl(models_for_aic, ~AIC(.x)))
+print(aic_df)
+
+# residual plots for NB (if available)
+if (!is.null(mod_nb)) {
+  res <- residuals(mod_nb, type = "pearson")
+  plot(fitted(mod_nb), res, xlab = "Fitted", ylab = "Pearson residuals", main = "NB residuals")
+  abline(h = 0, lty = 2)
+}
+
+message("Done. Summary: Poisson -> check dispersion; if >1.5 use NB or mixed NB. Try lagged attacks and lagged injuries to capture temporal autocorrelation. Use CLR or Dirichlet-multinomial for compositional/proportion analysis across injury categories.")
+
+```
+
