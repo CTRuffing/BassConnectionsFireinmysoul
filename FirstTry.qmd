@@ -28,6 +28,8 @@ dataset <- full_join(injuries, attacks, by = "period_start")
 
 dataset <- dataset |>
   drop_na()
+library(writexl)
+write_xlsx(dataset, "aggregated_dataset.xlsx")
 
 ```
 
