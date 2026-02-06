@@ -15,7 +15,9 @@ attacks <- read_excel("attacks.xlsx")
 
 injuries <- read_excel("injuries.xlsx")
 
-catchment <- read_excel("catchment_areas_over_time.xlsx")
+catchment_area <- read_excel("catchment_areas_over_time.xlsx", sheet = "Catchment areas over time")
+
+catchment_percent <- read_excel("catchment_areas_over_time.xlsx", sheet = "Catchment percentages over time")
 
 ```
 
@@ -28,6 +30,8 @@ attacks <- attacks |>
 
 injuries <- injuries |>
   arrange(desc(period_start))
+
+catchment_area <- t(catchment_area)
 
 dataset <- full_join(injuries, attacks, by = "period_start")
 
