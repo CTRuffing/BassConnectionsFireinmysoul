@@ -31,9 +31,42 @@ attacks <- attacks |>
 injuries <- injuries |>
   arrange(desc(period_start))
 
-catchment_area <- t(catchment_area)
+catchment_area <- as.data.frame(t(catchment_area))
+
+colnames(catchment_area) <- catchment_area[1,]
+catchment_area <- catchment_area[-1, ]
+catchment_area <- catchment_area[rownames(catchment_area) != "Average",]
+
+library(dplyr)
+library(lubridate)
+library(tibble)
+
+# assume your table is in 'catchment_area' with rownames like "2023-10-07 to 2023-10-21"
+df2 <- catchment_area %>% rownames_to_column(var = "period.x")
+
+df_selected <- df2 %>%
+  mutate(
+    period_start = as.Date(sub("^(\\d{4}-\\d{2}-\\d{2}).*$", "\\1", period.x))
+  ) %>%
+  mutate(
+    Selected = case_when(
+      period_start >= as.Date("2023-10-07") & period_start <= as.Date("2023-11-03") ~
+        as.numeric(`Al Shifa Medical Hospital`),
+      period_start >= as.Date("2023-12-11") & period_start <= as.Date("2024-04-28") ~
+        as.numeric(`European Hospital`),
+      period_start >= as.Date("2024-11-11") & period_start <= as.Date("2025-02-02") ~
+        as.numeric(`Nasser Hospital`),
+      TRUE ~ NA_real_
+    )
+  ) %>%
+  select(period.x, Selected)
+
+print(out_df)
+
+
 
 dataset <- full_join(injuries, attacks, by = "period_start")
+dataset <- full_join(dataset, df_selected, by = "period.x")
 
 dataset <- dataset |>
   drop_na()
