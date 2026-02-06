@@ -640,7 +640,7 @@ def main():
             period_start = cur
             period_end = min(cur + two_weeks, rend)
             periods.append((period_start, period_end))
-            cur = period_end  # jump by each two-week chunk inside this range
+            cur = period_end + timedelta(days = 1) # jump by each two-week chunk inside this range
 
     if not periods:
         raise ValueError("No periods were generated from the provided date_ranges.")
