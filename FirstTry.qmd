@@ -15,6 +15,8 @@ attacks <- read_excel("attacks.xlsx")
 
 injuries <- read_excel("injuries.xlsx")
 
+catchment <- read_excel("catchment_areas_over_time.xlsx")
+
 ```
 
 ```{r}
@@ -91,8 +93,6 @@ sapply(models_poisson, check_dispersion)
 # If dispersion >> 1 (rule of thumb: > 1.5 or 2), use negative binomial.
 
 ```
-
-
 
 LALALAA
 
@@ -314,4 +314,3 @@ if (!is.null(mod_nb)) {
 message("Done. Summary: Poisson -> check dispersion; if >1.5 use NB or mixed NB. Try lagged attacks and lagged injuries to capture temporal autocorrelation. Use CLR or Dirichlet-multinomial for compositional/proportion analysis across injury categories.")
 
 ```
-
