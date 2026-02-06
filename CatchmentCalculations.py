@@ -1,17 +1,22 @@
 #!/usr/bin/env python3
 """
-catchment_calculations_rewrite.py
+catchment_calculations_full_rewrite.py
 
-Rewritten / hardened version of your catchment-area script.
+Complete, cleaned-up rewrite of your catchment-area script.
+
 Features:
-- Robust hospital name matching (handles Al Quds and Kuwait)
-- Includes Al Quds and Kuwait in calculations and visualization
-- Voronoi with shapely.voronoi_diagram when available; SciPy fallback otherwise
-- Two-week period aggregation with weighted areas if hospital status changes mid-period
+- Robust hospital-name matching (reliably includes Al Quds and Kuwait).
+- Voronoi regions (shapely.voronoi_diagram when available; SciPy fallback).
+- 5 km catchment cap (geodesic buffer).
+- Two-week aggregates with weighting if hospital status changes mid-period.
 - Outputs:
-    1) Excel: catchment_areas_over_time.xlsx
-    2) HTML: first period visualization saved to catchment_visualization_YYYYMMDD_to_YYYYMMDD.html
-Requirements: geopandas, shapely, pandas, numpy, pyproj, scipy, folium, openpyxl
+    - Excel workbook "catchment_areas_over_time.xlsx" with TWO SHEETS:
+        1) "Catchment areas over time" (areas in km²)
+        2) "Catchment percentages over time" (percent of total Gaza area)
+    - HTML map for the first two-week period: saved as catchment_visualization_YYYYMMDD_to_YYYYMMDD.html
+
+Drop this file in the same folder as your Excel & geojson and run:
+    python catchment_calculations_full_rewrite.py
 """
 
 from datetime import datetime, timedelta
@@ -32,7 +37,7 @@ import folium
 
 warnings.filterwarnings("ignore")
 
-# Try shapely voronoi
+# try shapely voronoi (optional optimization)
 try:
     from shapely.ops import voronoi_diagram  # type: ignore
     _HAS_SHAPELY_VORONOI = True
@@ -41,7 +46,7 @@ except Exception:
     _HAS_SHAPELY_VORONOI = False
 
 # -------------------------
-# Config
+# Configuration
 # -------------------------
 HOSP_PATH = "Hospitals_OpenCloseoverTime.xlsx"
 GAZA_BOUNDARY = "gaza_boundary.geojson"
@@ -49,8 +54,9 @@ OUTPUT_DIR = "."
 CRS_WGS84 = "EPSG:4326"
 CRS_WEBMERC = "EPSG:3857"
 CATCHMENT_DISTANCE_KM = 5.0
-VORONOI_BUFFER_METERS = 15000  # generous buffer around Gaza bbox
-# canonical targets and mapping
+VORONOI_BUFFER_METERS = 15000
+
+# canonical targets and common variants
 HOSPITAL_NAME_MAPPING = {
     "Al Nasser": ["Al Nasser", "Nasser Hospital", "Nasser"],
     "EGH": ["EGH", "European Hospital", "European", "El European"],
@@ -60,7 +66,7 @@ HOSPITAL_NAME_MAPPING = {
 }
 TARGET_HOSPITALS = list(HOSPITAL_NAME_MAPPING.keys())
 
-# Colors for visualization (extend/adjust as desired)
+# colors for map legend
 HOSPITAL_COLORS = {
     "Al Nasser": "#e41a1c",
     "EGH": "#377eb8",
@@ -71,13 +77,12 @@ HOSPITAL_COLORS = {
 
 
 # -------------------------
-# Helpers
+# Utility / matching
 # -------------------------
 def _normalize(s: Optional[str]) -> str:
     if s is None:
         return ""
     s = str(s)
-    # replace non-alphanumeric with spaces, collapse multiple spaces, lower
     s2 = re.sub(r"[^0-9a-zA-Z]+", " ", s).strip().lower()
     s2 = re.sub(r"\s+", " ", s2)
     return s2
@@ -85,7 +90,7 @@ def _normalize(s: Optional[str]) -> str:
 
 def match_hospital_name(name: Optional[str]) -> Optional[str]:
     """
-    Robust matching to canonical hospital names in HOSPITAL_NAME_MAPPING.
+    Robustly map various hospital name strings to canonical names in HOSPITAL_NAME_MAPPING.
     Returns canonical name (e.g., "Al Quds") or None.
     """
     if name is None or (isinstance(name, float) and pd.isna(name)):
@@ -94,25 +99,24 @@ def match_hospital_name(name: Optional[str]) -> Optional[str]:
     if not name_norm:
         return None
 
-    # Exact normalized match against variants
+    # exact normalized match
     for canonical, variants in HOSPITAL_NAME_MAPPING.items():
         for v in variants + [canonical]:
             if _normalize(v) == name_norm:
                 return canonical
 
-    # Token overlap heuristic: require at least one significant token match
+    # token overlap (ignore stop tokens)
     name_tokens = set(name_norm.split())
     stop_tokens = {"al", "the", "hospital", "hosp", "medical"}
     for canonical, variants in HOSPITAL_NAME_MAPPING.items():
-        tokens = set()
-        tokens.update(_normalize(canonical).split())
+        tokens = set(_normalize(canonical).split())
         for v in variants:
             tokens.update(_normalize(v).split())
-        sig_overlap = [t for t in (tokens & name_tokens) if t not in stop_tokens]
-        if sig_overlap:
+        sig = [t for t in (tokens & name_tokens) if t not in stop_tokens]
+        if sig:
             return canonical
 
-    # final simple substring heuristics
+    # fallback heuristics
     if "nasser" in name_norm:
         return "Al Nasser"
     if "european" in name_norm or "egh" in name_norm:
@@ -133,15 +137,13 @@ def match_hospital_name(name: Optional[str]) -> Optional[str]:
 def read_hospitals_table(path: str) -> Tuple[pd.DataFrame, List[Tuple[str, str, Optional[datetime]]]]:
     """
     Parse the Hospitals_OpenCloseoverTime.xlsx file.
-    Returns: hospitals_df (with 'Hospital','lon','lat' and schedule cols), schedule_meta list of tuples (col, type, date)
+    Returns DataFrame with 'Hospital','lon','lat' and a schedule_meta list of (col, type, date).
     """
     if not os.path.exists(path):
-        raise FileNotFoundError(f"Could not find hospitals file: {path}")
+        raise FileNotFoundError(f"Hospitals table not found at: {path}")
 
-    # Read two-row header preview (to try parse dates) and full table
     raw_head = pd.read_excel(path, header=None, nrows=2)
     full = pd.read_excel(path, header=0)
-
     cols = list(full.columns)
 
     def find_col(opts: List[str]) -> Optional[str]:
@@ -157,7 +159,6 @@ def read_hospitals_table(path: str) -> Tuple[pd.DataFrame, List[Tuple[str, str, 
     if hosp_col is None or lon_col is None or lat_col is None:
         raise ValueError(f"Couldn't detect Hospital/lon/lat columns. Found: {cols}")
 
-    # Detect Open/Closed schedule columns using header names + date in second row
     schedule_meta: List[Tuple[str, str, Optional[datetime]]] = []
     for c in cols:
         if isinstance(c, str):
@@ -174,14 +175,14 @@ def read_hospitals_table(path: str) -> Tuple[pd.DataFrame, List[Tuple[str, str, 
                     dt = None
                 schedule_meta.append((c, typ, dt))
 
-    # keep only schedule columns with detected date
+    # keep only schedule columns that had a date in the second header row
     schedule_meta = [(c, typ, d) for (c, typ, d) in schedule_meta if d is not None]
 
     hospitals_df = full[[hosp_col, lon_col, lat_col]].rename(columns={hosp_col: "Hospital", lon_col: "lon", lat_col: "lat"})
     hospitals_df["lon"] = pd.to_numeric(hospitals_df["lon"], errors="coerce")
     hospitals_df["lat"] = pd.to_numeric(hospitals_df["lat"], errors="coerce")
 
-    # copy schedule marker columns into hospitals_df (if present)
+    # copy schedule marker columns if they exist
     for c, _, _ in schedule_meta:
         if c in full.columns:
             hospitals_df[c] = full[c]
@@ -192,7 +193,7 @@ def read_hospitals_table(path: str) -> Tuple[pd.DataFrame, List[Tuple[str, str, 
 def build_hospital_open_intervals(hospitals_df: pd.DataFrame, schedule_meta: List[Tuple[str, str, Optional[datetime]]]) -> Dict[str, List[Tuple[datetime, str]]]:
     """
     Build per-hospital ordered list of (date, status) changes.
-    If no per-row marks are present, global schedule_meta events are used for all hospitals.
+    If row-specific markers are present they are used, otherwise global schedule events are applied.
     """
     events = sorted([(pd.to_datetime(d).to_pydatetime(), col, typ) for (col, typ, d) in schedule_meta], key=lambda x: x[0])
     hospital_intervals: Dict[str, List[Tuple[datetime, str]]] = {}
@@ -201,19 +202,18 @@ def build_hospital_open_intervals(hospitals_df: pd.DataFrame, schedule_meta: Lis
         name = row["Hospital"]
         changes: List[Tuple[datetime, str]] = []
 
-        # per-row markers
+        # per-row markers (preferred)
         for dt, col, typ in events:
-            col_name = col
-            val = row.get(col_name, None) if col_name in row.index else None
-            if pd.notnull(val) and str(val).strip() != "":
-                changes.append((dt, typ))
+            if col in row.index:
+                val = row.get(col, None)
+                if pd.notnull(val) and str(val).strip() != "":
+                    changes.append((dt, typ))
 
-        # if no per-row markers, fall back to global events
+        # if none found per-row, apply global events
         if not changes:
             for dt, col, typ in events:
                 changes.append((dt, typ))
 
-        # compress duplicates and sort
         changes_sorted = sorted(changes, key=lambda x: x[0])
         compressed: List[Tuple[datetime, str]] = []
         for dt, typ in changes_sorted:
@@ -231,6 +231,7 @@ def build_hospital_open_intervals(hospitals_df: pd.DataFrame, schedule_meta: Lis
 def get_hospital_status_at_date(hospital_intervals: Dict[str, List[Tuple[datetime, str]]], hospital_name: str, date: datetime) -> str:
     """
     Return "Open" or "Closed" for hospital_name at the given date.
+    Default to "Open" if no prior event exists.
     """
     if hospital_name not in hospital_intervals:
         return "Closed"
@@ -245,10 +246,9 @@ def get_hospital_status_at_date(hospital_intervals: Dict[str, List[Tuple[datetim
 
 
 # -------------------------
-# Voronoi / Catchment functions
+# Voronoi & clipping
 # -------------------------
 def _scipy_voronoi_fallback(pts_wgs: gpd.GeoDataFrame, pts_proj: gpd.GeoDataFrame, clip_union, bbox_proj) -> gpd.GeoDataFrame:
-    """Fallback Voronoi using SciPy in projected coords (WEBMERC)."""
     coords = np.array([(pt.x, pt.y) for pt in pts_proj.geometry])
     vor = Voronoi(coords)
 
@@ -256,7 +256,6 @@ def _scipy_voronoi_fallback(pts_wgs: gpd.GeoDataFrame, pts_proj: gpd.GeoDataFram
     for pt_idx, region_index in enumerate(vor.point_region):
         region = vor.regions[region_index]
         if not region or -1 in region:
-            # unbounded region: create convex hull from site + bbox coords
             site = coords[pt_idx]
             bbox_coords = np.array(bbox_proj.exterior.coords)
             pts_for_hull = np.vstack([site, bbox_coords])
@@ -289,7 +288,7 @@ def _scipy_voronoi_fallback(pts_wgs: gpd.GeoDataFrame, pts_proj: gpd.GeoDataFram
 
     result = gpd.GeoDataFrame(rows, crs=CRS_WGS84)
 
-    # assign any leftover pieces to nearest hospital
+    # assign leftover pieces to nearest hospital
     covered = unary_union([g for g in result.geometry if g is not None and not g.is_empty]) if not result.empty else None
     leftover = clip_union.difference(covered) if covered is not None else clip_union
     if leftover and not leftover.is_empty:
@@ -310,8 +309,9 @@ def _scipy_voronoi_fallback(pts_wgs: gpd.GeoDataFrame, pts_proj: gpd.GeoDataFram
 
 def voronoi_polygons_clipped(points_gdf: gpd.GeoDataFrame, clip_gdf: gpd.GeoDataFrame, distance_cap_km: float = CATCHMENT_DISTANCE_KM) -> gpd.GeoDataFrame:
     """
-    Return per-hospital Voronoi polygons clipped to clip_gdf and trimmed to distance cap (in km).
-    points_gdf: GeoDataFrame with 'Hospital' and Point geometry in WGS84
+    Build Voronoi regions for point hospitals, clip them to clip_gdf (WGS84),
+    then intersect each with a geodesic circle (distance_cap_km).
+    Returns GeoDataFrame with columns ['Hospital','geometry'] in WGS84.
     """
     if points_gdf.empty:
         return gpd.GeoDataFrame(columns=["Hospital", "geometry"], crs=CRS_WGS84)
@@ -319,16 +319,12 @@ def voronoi_polygons_clipped(points_gdf: gpd.GeoDataFrame, clip_gdf: gpd.GeoData
     pts_wgs = points_gdf.reset_index(drop=True).to_crs(CRS_WGS84)
     pts_proj = points_gdf.reset_index(drop=True).to_crs(CRS_WEBMERC)
 
-    # union of clip polygon(s)
     clip_union = clip_gdf.unary_union
-
-    # bounding envelope in projected coords
     clip_proj = gpd.GeoSeries([clip_union], crs=CRS_WGS84).to_crs(CRS_WEBMERC)
     minx, miny, maxx, maxy = clip_proj.total_bounds
     buf = VORONOI_BUFFER_METERS
     bbox_proj = shapely_geom.box(minx - buf, miny - buf, maxx + buf, maxy + buf)
 
-    # Try shapely voronoi if available
     if _HAS_SHAPELY_VORONOI:
         try:
             multip = shapely_geom.MultiPoint([(pt.x, pt.y) for pt in pts_proj.geometry])
@@ -346,7 +342,6 @@ def voronoi_polygons_clipped(points_gdf: gpd.GeoDataFrame, clip_gdf: gpd.GeoData
             polys_proj_gdf = gpd.GeoDataFrame(geometry=poly_list, crs=CRS_WEBMERC)
             polys_wgs = polys_proj_gdf.to_crs(CRS_WGS84).reset_index(drop=True)
 
-            # assign polygons to nearest hospital representative point
             hosp_points_wgs = pts_wgs.set_geometry(pts_wgs.geometry).copy()
             assigned = []
             for poly in polys_wgs.geometry:
@@ -369,12 +364,11 @@ def voronoi_polygons_clipped(points_gdf: gpd.GeoDataFrame, clip_gdf: gpd.GeoData
             result = gpd.GeoDataFrame(rows, crs=CRS_WGS84)
 
         except Exception:
-            # fallback to scipy
             result = _scipy_voronoi_fallback(pts_wgs, pts_proj, clip_union, bbox_proj)
     else:
         result = _scipy_voronoi_fallback(pts_wgs, pts_proj, clip_union, bbox_proj)
 
-    # Apply distance cap: intersect each region with a circular buffer around the hospital (geodesic)
+    # distance cap (geodesic circle around each hospital)
     geod = Geod(ellps="WGS84")
     capped_result = []
     for _, row in result.iterrows():
@@ -393,7 +387,7 @@ def voronoi_polygons_clipped(points_gdf: gpd.GeoDataFrame, clip_gdf: gpd.GeoData
         hosp_lon = hosp_point.x
         hosp_lat = hosp_point.y
 
-        # build geodesic circle
+        # create geodesic circle
         angles = np.linspace(0, 360, 128)
         circle_points = []
         for angle in angles:
@@ -417,9 +411,8 @@ def voronoi_polygons_clipped(points_gdf: gpd.GeoDataFrame, clip_gdf: gpd.GeoData
 # -------------------------
 def calculate_catchment_area(gaza_gdf: gpd.GeoDataFrame, hospitals_gdf: gpd.GeoDataFrame, hospital_intervals: dict, period_start: datetime, period_end: datetime) -> Dict[str, float]:
     """
-    Returns mapping hospital_name -> catchment area (km^2) for the given period.
-    Handles sub-intervals if hospitals change status inside the period (weighted by time).
-    Only includes hospitals present in hospitals_gdf (and that match TARGET_HOSPITALS).
+    Return mapping hospital_name -> catchment area (km^2) for the period.
+    Handles sub-intervals if hospitals change status mid-period (weights by time).
     """
     geod = Geod(ellps="WGS84")
     change_dates = []
@@ -429,7 +422,6 @@ def calculate_catchment_area(gaza_gdf: gpd.GeoDataFrame, hospitals_gdf: gpd.GeoD
                 if period_start <= dt < period_end:
                     change_dates.append(dt)
 
-    # include period boundaries and sort unique
     change_dates = sorted(set([period_start] + change_dates + [period_end]))
     total_duration = (period_end - period_start).total_seconds()
     catchment_areas = {hosp: 0.0 for hosp in hospitals_gdf['Hospital'].values}
@@ -441,24 +433,24 @@ def calculate_catchment_area(gaza_gdf: gpd.GeoDataFrame, hospitals_gdf: gpd.GeoD
         weight = sub_duration / total_duration if total_duration > 0 else 0.0
 
         sub_midpoint = sub_start + (sub_end - sub_start) / 2
-        open_hospitals_rows = []
+        open_rows = []
         for _, row in hospitals_gdf.iterrows():
             hosp_name = row['Hospital']
             canonical = match_hospital_name(hosp_name)
             if canonical and canonical in TARGET_HOSPITALS:
                 status = get_hospital_status_at_date(hospital_intervals, hosp_name, sub_midpoint)
                 if status == "Open":
-                    open_hospitals_rows.append({'Hospital': hosp_name, 'geometry': row.geometry})
+                    open_rows.append({'Hospital': hosp_name, 'geometry': row.geometry})
 
-        if not open_hospitals_rows:
+        if not open_rows:
             continue
 
-        open_hospitals_gdf = gpd.GeoDataFrame(open_hospitals_rows, crs=CRS_WGS84)
-        voronoi_polys = voronoi_polygons_clipped(open_hospitals_gdf, gaza_gdf, distance_cap_km=CATCHMENT_DISTANCE_KM)
+        open_gdf = gpd.GeoDataFrame(open_rows, crs=CRS_WGS84)
+        voronoi_polys = voronoi_polygons_clipped(open_gdf, gaza_gdf, distance_cap_km=CATCHMENT_DISTANCE_KM)
 
-        for _, row in voronoi_polys.iterrows():
-            hosp_name = row['Hospital']
-            geom = row['geometry']
+        for _, r in voronoi_polys.iterrows():
+            hosp_name = r['Hospital']
+            geom = r['geometry']
             if geom is None or geom.is_empty:
                 continue
             try:
@@ -473,7 +465,6 @@ def calculate_catchment_area(gaza_gdf: gpd.GeoDataFrame, hospitals_gdf: gpd.GeoD
                 area_km2 = total_area_m2 / 1e6
                 catchment_areas[hosp_name] += area_km2 * weight
             except Exception:
-                # skip problem polygons but continue
                 continue
 
     return catchment_areas
@@ -484,11 +475,11 @@ def calculate_catchment_area(gaza_gdf: gpd.GeoDataFrame, hospitals_gdf: gpd.GeoD
 # -------------------------
 def create_html_visualization(gaza_gdf: gpd.GeoDataFrame, hospitals_gdf: gpd.GeoDataFrame, hospital_intervals: dict, period_start: datetime, period_end: datetime, output_path: str):
     """
-    Create folium HTML visualization for the given period (uses midpoint statuses).
+    Create folium HTML visualization for first period (or any chosen period).
     """
     sub_midpoint = period_start + (period_end - period_start) / 2
-    open_hospitals_rows = []
-    hosp_coords = {}
+    open_rows = []
+    coords = {}
 
     for _, row in hospitals_gdf.iterrows():
         hosp_name = row['Hospital']
@@ -496,32 +487,27 @@ def create_html_visualization(gaza_gdf: gpd.GeoDataFrame, hospitals_gdf: gpd.Geo
         if canonical and canonical in TARGET_HOSPITALS:
             status = get_hospital_status_at_date(hospital_intervals, hosp_name, sub_midpoint)
             if status == "Open":
-                open_hospitals_rows.append({'Hospital': hosp_name, 'geometry': row.geometry})
-                hosp_coords[hosp_name] = (row.geometry.y, row.geometry.x)
+                open_rows.append({'Hospital': hosp_name, 'geometry': row.geometry})
+                coords[hosp_name] = (row.geometry.y, row.geometry.x)
 
-    if not open_hospitals_rows:
-        print(f"No open target hospitals in period {period_start} to {period_end} — skipping HTML creation.")
+    if not open_rows:
+        print(f"No open target hospitals in period {period_start} to {period_end} — skipping HTML.")
         return
 
-    open_hospitals_gdf = gpd.GeoDataFrame(open_hospitals_rows, crs=CRS_WGS84)
-    voronoi_polys = voronoi_polygons_clipped(open_hospitals_gdf, gaza_gdf, distance_cap_km=CATCHMENT_DISTANCE_KM)
+    open_gdf = gpd.GeoDataFrame(open_rows, crs=CRS_WGS84)
+    voronoi_polys = voronoi_polygons_clipped(open_gdf, gaza_gdf, distance_cap_km=CATCHMENT_DISTANCE_KM)
 
-    bounds = gaza_gdf.total_bounds  # minx, miny, maxx, maxy in WGS84
+    bounds = gaza_gdf.total_bounds  # minx, miny, maxx, maxy
     center = [(bounds[1] + bounds[3]) / 2, (bounds[0] + bounds[2]) / 2]
     m = folium.Map(location=center, zoom_start=11)
 
-    # Add polygons with hospital-specific colors
-    for _, row in voronoi_polys.iterrows():
-        hosp_name = row['Hospital']
+    for _, r in voronoi_polys.iterrows():
+        hosp_name = r['Hospital']
         canonical = match_hospital_name(hosp_name)
-        geom = row['geometry']
+        geom = r['geometry']
         if geom is None or geom.is_empty:
             continue
-        if canonical:
-            color = HOSPITAL_COLORS.get(canonical, "#999999")
-        else:
-            color = "#999999"
-
+        color = HOSPITAL_COLORS.get(canonical, "#999999") if canonical else "#999999"
         folium.GeoJson(
             geom.__geo_interface__,
             style_function=lambda feature, fill_color=color: {
@@ -534,85 +520,58 @@ def create_html_visualization(gaza_gdf: gpd.GeoDataFrame, hospitals_gdf: gpd.Geo
             tooltip=hosp_name
         ).add_to(m)
 
-    # hospital markers
-    for hosp_name, (lat, lon) in hosp_coords.items():
-        canonical = match_hospital_name(hosp_name)
-        folium.Marker(
-            location=(lat, lon),
-            popup=hosp_name,
-            icon=folium.Icon(color='red', icon='plus-sign', prefix='glyphicon')
-        ).add_to(m)
+    for hosp_name, (lat, lon) in coords.items():
+        folium.Marker(location=(lat, lon), popup=hosp_name, icon=folium.Icon(color='red', icon='plus-sign', prefix='glyphicon')).add_to(m)
 
-    # Gaza boundary
-    folium.GeoJson(
-        gaza_gdf.__geo_interface__,
-        style_function=lambda feature: {
-            'fillColor': 'transparent',
-            'color': 'black',
-            'weight': 2,
-            'opacity': 1.0
-        }
-    ).add_to(m)
+    folium.GeoJson(gaza_gdf.__geo_interface__, style_function=lambda f: {'fillColor': 'transparent', 'color': 'black', 'weight': 2}).add_to(m)
 
-    # Title box
-    open_names = [n for n in open_hospitals_gdf['Hospital'].values]
+    open_names = [n for n in open_gdf['Hospital'].values]
     title_html = f"""
-    <div style="position: fixed; top: 10px; left: 10px; z-index: 9999;
-                background: white; padding: 8px; border: 1px solid grey; font-size:12px;">
-        <b>Catchment Areas</b><br/>
-        <b>Period:</b> {period_start.strftime('%Y-%m-%d')} → {period_end.strftime('%Y-%m-%d')}<br/>
-        <b>Open hospitals:</b> {', '.join(open_names)}
+    <div style="position: fixed; top: 10px; left: 10px; z-index: 9999; background: white; padding: 8px; border:1px solid grey; font-size:12px;">
+      <b>Catchment Areas</b><br/>
+      <b>Period:</b> {period_start.strftime('%Y-%m-%d')} → {period_end.strftime('%Y-%m-%d')}<br/>
+      <b>Open hospitals:</b> {', '.join(open_names)}
     </div>
     """
     m.get_root().html.add_child(folium.Element(title_html))
 
-    # Legend (programmatically generated)
     legend_items = []
     for canonical in TARGET_HOSPITALS:
         color = HOSPITAL_COLORS.get(canonical, "#999999")
         legend_items.append(f'<div style="margin-bottom:4px;"><span style="display:inline-block;width:12px;height:12px;background:{color};margin-right:6px;border:1px solid #000;"></span>{canonical}</div>')
     legend_html = f"""
-    <div style="position: fixed; bottom: 30px; left: 10px; z-index:9999;
-                background: white; padding: 8px; border: 1px solid grey; font-size:12px;">
-        <b>Hospital Catchment Areas</b><br/>
-        {''.join(legend_items)}
-        <div style="margin-top:6px;font-size:10px;">Areas within {CATCHMENT_DISTANCE_KM} km of closest open hospital</div>
+    <div style="position: fixed; bottom: 30px; left: 10px; z-index:9999; background: white; padding: 8px; border:1px solid grey; font-size:12px;">
+      <b>Hospital Catchment Areas</b><br/>{''.join(legend_items)}
+      <div style="margin-top:6px;font-size:10px;">Areas within {CATCHMENT_DISTANCE_KM} km of closest open hospital</div>
     </div>
     """
     m.get_root().html.add_child(folium.Element(legend_html))
 
-    # Save
     m.save(output_path)
     print(f"Saved HTML visualization to: {output_path}")
 
 
 # -------------------------
-# Main orchestration
+# Main
 # -------------------------
 def main():
     print("=" * 70)
-    print("Catchment Area Calculations (rewritten)")
+    print("Catchment Area Calculations — Full Rewrite")
     print("=" * 70)
 
-    # Read hospitals table
+    # read hospitals & schedule
     hospitals_df, schedule_meta = read_hospitals_table(HOSP_PATH)
-    print(f"Loaded {len(hospitals_df)} hospital records from Excel.")
+    print(f"Loaded {len(hospitals_df)} hospital records.")
 
-    # Show simple mapping diagnostics
-    matched = []
+    # diagnostics: show mapping
+    print("Hospital name mapping (excel name -> canonical):")
     for hosp_name in hospitals_df['Hospital'].values:
-        canonical = match_hospital_name(hosp_name)
-        matched.append((hosp_name, canonical))
-    print("Detected mapping (Excel name -> canonical):")
-    for orig, canon in matched:
-        print(f"  '{orig}' -> {canon}")
+        print(f"  '{hosp_name}' -> {match_hospital_name(hosp_name)}")
 
-    # Build hospital intervals
     hospital_intervals = build_hospital_open_intervals(hospitals_df, schedule_meta)
 
-    # Determine date range
+    # determine date range
     all_dates = [d for (_, _, d) in schedule_meta if d is not None]
-    # also scan per-row cells for dates (robust)
     for _, row in hospitals_df.iterrows():
         for col, _, dt in schedule_meta:
             if col in row.index and pd.notnull(row.get(col)):
@@ -624,13 +583,13 @@ def main():
                     pass
 
     if not all_dates:
-        raise ValueError("Could not determine date range from Excel. No dates found in schedule header or cells.")
+        raise ValueError("Could not determine date range from Excel schedule headers/cells.")
 
     START_DATE = min(all_dates)
     END_DATE = max(all_dates)
-    print(f"Date range discovered: {START_DATE.date()} to {END_DATE.date()}")
+    print(f"Date range: {START_DATE.date()} to {END_DATE.date()}")
 
-    # create hospitals GeoDataFrame (only rows with valid coords)
+    # create hospitals GeoDataFrame
     hospitals_gdf = gpd.GeoDataFrame(
         hospitals_df.dropna(subset=["lon", "lat"]).copy(),
         geometry=gpd.points_from_xy(hospitals_df["lon"].astype(float), hospitals_df["lat"].astype(float)),
@@ -646,7 +605,7 @@ def main():
     gaza_gdf = gaza_gdf.to_crs(CRS_WGS84)
     gaza_gdf = gaza_gdf.dissolve(by=None).reset_index(drop=True)
 
-    # calculate Gaza area for percent computations
+    # compute Gaza area for percentages
     geod = Geod(ellps="WGS84")
     gaza_geom = gaza_gdf.unary_union
     if isinstance(gaza_geom, MultiPolygon):
@@ -657,7 +616,7 @@ def main():
     print(f"Total Gaza area: {total_gaza_area_km2:.2f} km²")
 
     # iterate two-week periods
-    print("Calculating catchment areas in two-week increments...")
+    print("Calculating catchment areas for two-week periods...")
     results = []
     current_date = START_DATE
     period_num = 1
@@ -666,9 +625,9 @@ def main():
         period_start = current_date
         period_end = min(current_date + timedelta(days=14), END_DATE)
         print(f"\nPeriod {period_num}: {period_start.date()} to {period_end.date()}")
+
         catchment_areas = calculate_catchment_area(gaza_gdf, hospitals_gdf, hospital_intervals, period_start, period_end)
 
-        # store results for all hospitals that match target list
         row = {"Period": f"{period_start.date()} to {period_end.date()}"}
         for _, hrow in hospitals_gdf.iterrows():
             hosp_name = hrow['Hospital']
@@ -677,63 +636,74 @@ def main():
                 row[hosp_name] = catchment_areas.get(hosp_name, 0.0)
         results.append(row)
 
-        # create HTML for first period
+        # save HTML for first period
         if period_num == 1:
-            safe_name = f"catchment_visualization_{period_start.strftime('%Y%m%d')}_to_{period_end.strftime('%Y%m%d')}.html"
-            html_path = os.path.join(OUTPUT_DIR, safe_name)
+            html_name = f"catchment_visualization_{period_start.strftime('%Y%m%d')}_to_{period_end.strftime('%Y%m%d')}.html"
+            html_path = os.path.join(OUTPUT_DIR, html_name)
             create_html_visualization(gaza_gdf, hospitals_gdf, hospital_intervals, period_start, period_end, html_path)
 
         current_date = period_end
         period_num += 1
 
-    # prepare Excel output (area rows and percentage rows)
-    print("\nPreparing Excel output...")
+    # Prepare Excel output with TWO sheets:
+    #   "Catchment areas over time" (km²)
+    #   "Catchment percentages over time" (% of Gaza area)
+    print("\nPreparing Excel workbook with two sheets...")
     all_hospital_names = sorted({k for r in results for k in r.keys() if k != "Period"})
     period_cols = [r["Period"] for r in results]
 
-    excel_rows = []
+    areas_rows = []
+    pct_rows = []
+
     for hosp_name in all_hospital_names:
         canonical = match_hospital_name(hosp_name)
         if not canonical or canonical not in TARGET_HOSPITALS:
             continue
 
-        # area row
         area_row = {"Hospital": hosp_name}
-        area_values = []
+        area_vals = []
         for rr in results:
             period = rr["Period"]
             area = rr.get(hosp_name, 0.0)
             area_row[period] = area
-            area_values.append(area)
-        area_row["Average"] = float(np.mean(area_values)) if area_values else 0.0
-        excel_rows.append(area_row)
+            area_vals.append(area)
+        area_row["Average"] = float(np.mean(area_vals)) if area_vals else 0.0
+        areas_rows.append(area_row)
 
-        # percent row
-        pct_row = {"Hospital": ""}
+        pct_row = {"Hospital": hosp_name}
         for rr in results:
             period = rr["Period"]
             area = rr.get(hosp_name, 0.0)
             pct = (area / total_gaza_area_km2 * 100.0) if total_gaza_area_km2 > 0 else 0.0
-            pct_row[period] = f"{pct:.2f}%"
-        avg_pct = (np.mean(area_values) / total_gaza_area_km2 * 100.0) if total_gaza_area_km2 > 0 else 0.0
-        pct_row["Average"] = f"{avg_pct:.2f}%"
-        excel_rows.append(pct_row)
+            pct_row[period] = pct
+        avg_pct = (np.mean(area_vals) / total_gaza_area_km2 * 100.0) if total_gaza_area_km2 > 0 else 0.0
+        pct_row["Average"] = avg_pct
+        pct_rows.append(pct_row)
 
-    if excel_rows:
-        df_out = pd.DataFrame(excel_rows)
+    if areas_rows or pct_rows:
+        areas_df = pd.DataFrame(areas_rows)
+        pct_df = pd.DataFrame(pct_rows)
+
         cols = ["Hospital"] + period_cols + ["Average"]
-        df_out = df_out[[c for c in cols if c in df_out.columns]]
+        areas_df = areas_df[[c for c in cols if c in areas_df.columns]]
+        pct_df = pct_df[[c for c in cols if c in pct_df.columns]]
 
         excel_path = os.path.join(OUTPUT_DIR, "catchment_areas_over_time.xlsx")
-        df_out.to_excel(excel_path, index=False)
-        print(f"Saved Excel file to: {excel_path}")
-        print("\nSample of results:")
-        with pd.option_context('display.max_rows', 200, 'display.max_columns', 200):
-            print(df_out.head(20).to_string(index=False))
-    else:
-        print("No hospital data to write to Excel.")
+        with pd.ExcelWriter(excel_path, engine="openpyxl") as writer:
+            areas_df.to_excel(writer, sheet_name="Catchment areas over time", index=False)
+            pct_df.to_excel(writer, sheet_name="Catchment percentages over time", index=False)
 
-    print("\nProcessing complete.")
+        print(f"Saved workbook: {excel_path}")
+        print("\nSample (areas):")
+        with pd.option_context('display.max_rows', 200, 'display.max_columns', 200):
+            print(areas_df.head(20).to_string(index=False))
+        print("\nSample (percentages):")
+        with pd.option_context('display.max_rows', 200, 'display.max_columns', 200):
+            print(pct_df.head(20).to_string(index=False))
+    else:
+        print("No data to write to Excel.")
+
+    print("\nDone.")
     print("=" * 70)
 
 
