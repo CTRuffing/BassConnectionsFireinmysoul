@@ -17,7 +17,7 @@
             <meta name="viewport" content="width=device-width,
                 initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
             <style>
-                #map_4fe1cc0217624af174669a67feb1eb6c {
+                #map_d09627da6d8d561b82472a38eec41355 {
                     position: relative;
                     width: 100.0%;
                     height: 100.0%;
@@ -58,7 +58,7 @@
                  background: white; padding: 8px; border: 1px solid grey; font-size:12px;">
         <b>Catchment Areas</b><br/>
         <b>Period:</b> 2023-10-01 → 2023-10-15<br/>
-        <b>Open hospitals:</b> Al Shifa Medical Hospital, Nasser Hospital, European Hospital
+        <b>Open hospitals:</b> Al Shifa Medical Hospital, Al-Quds Hospital, Nasser Hospital, European Hospital, Kuwait Hospital
     </div>
     
     
@@ -76,14 +76,14 @@
     </div>
     
     
-            <div class="folium-map" id="map_4fe1cc0217624af174669a67feb1eb6c" ></div>
+            <div class="folium-map" id="map_d09627da6d8d561b82472a38eec41355" ></div>
         
 </body>
 <script>
     
     
-            var map_4fe1cc0217624af174669a67feb1eb6c = L.map(
-                "map_4fe1cc0217624af174669a67feb1eb6c",
+            var map_d09627da6d8d561b82472a38eec41355 = L.map(
+                "map_d09627da6d8d561b82472a38eec41355",
                 {
                     center: [31.409, 34.3878],
                     crs: L.CRS.EPSG3857,
@@ -100,7 +100,7 @@
 
         
     
-            var tile_layer_a4838d391f767ce909526d1d679a5648 = L.tileLayer(
+            var tile_layer_912180b20a266a5e03763e6a82ea9fdd = L.tileLayer(
                 "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
                 {
   "minZoom": 0,
@@ -117,38 +117,38 @@
             );
         
     
-            tile_layer_a4838d391f767ce909526d1d679a5648.addTo(map_4fe1cc0217624af174669a67feb1eb6c);
+            tile_layer_912180b20a266a5e03763e6a82ea9fdd.addTo(map_d09627da6d8d561b82472a38eec41355);
         
     
-        function geo_json_4476a5bb373393fc9d7a6f750b5be22b_styler(feature) {
+        function geo_json_223c19197af51e2ee10cfff78d755960_styler(feature) {
             switch(feature.id) {
                 default:
                     return {"color": "black", "fillColor": "#4daf4a", "fillOpacity": 0.5, "opacity": 0.8, "weight": 2};
             }
         }
 
-        function geo_json_4476a5bb373393fc9d7a6f750b5be22b_onEachFeature(feature, layer) {
+        function geo_json_223c19197af51e2ee10cfff78d755960_onEachFeature(feature, layer) {
 
             layer.on({
             });
         };
-        var geo_json_4476a5bb373393fc9d7a6f750b5be22b = L.geoJson(null, {
-                onEachFeature: geo_json_4476a5bb373393fc9d7a6f750b5be22b_onEachFeature,
+        var geo_json_223c19197af51e2ee10cfff78d755960 = L.geoJson(null, {
+                onEachFeature: geo_json_223c19197af51e2ee10cfff78d755960_onEachFeature,
             
-                style: geo_json_4476a5bb373393fc9d7a6f750b5be22b_styler,
+                style: geo_json_223c19197af51e2ee10cfff78d755960_styler,
             ...{
 }
         });
 
-        function geo_json_4476a5bb373393fc9d7a6f750b5be22b_add (data) {
-            geo_json_4476a5bb373393fc9d7a6f750b5be22b
+        function geo_json_223c19197af51e2ee10cfff78d755960_add (data) {
+            geo_json_223c19197af51e2ee10cfff78d755960
                 .addData(data);
         }
-            geo_json_4476a5bb373393fc9d7a6f750b5be22b_add({"features": [{"geometry": {"coordinates": [[[34.4076, 31.4982], [34.4521, 31.5468], [34.4656225203788, 31.564243684824685], [34.467931257491, 31.563291204103336], [34.47241058854729, 31.560946124683078], [34.476594725732525, 31.55823067389379], [34.48044206500331, 31.555171869556315], [34.48391436428086, 31.551800142976678], [34.48697712373078, 31.548149035253477], [34.48959992825736, 31.54425486268597], [34.491756748823825, 31.540156354657892], [34.49342619964284, 31.53589426764299], [34.49459174874116, 31.53151097921148], [34.495241879884816, 31.52705006610948], [34.49537020435037, 31.52255587063442], [34.494975521538265, 31.51807305963704], [34.49406182794026, 31.513646180544914], [34.49263827448953, 31.50931921882155], [34.4907190728333, 31.505135161251875], [34.4883233515695, 31.50113556937662], [34.485474963975676, 31.497360167288946], [34.48220224922623, 31.49384644785609], [34.478537749538525, 31.49062930123899], [34.474517886106035, 31.48774066935688], [34.47018259706456, 31.485209229682482], [34.46557494109136, 31.483060111461185], [34.460740670555914, 31.481314647126055], [34.45572777842108, 31.479990161333443], [34.45058602333425, 31.47909979967432], [34.445366437546454, 31.478652398729068], [34.44012082245355, 31.478652398729068], [34.43490123666575, 31.479099799674326], [34.42975948157893, 31.479990161333443], [34.42474658944409, 31.481314647126055], [34.419912318908644, 31.483060111461185], [34.41530466293544, 31.48520922968248], [34.41096937389397, 31.48774066935688], [34.40694951046148, 31.49062930123899], [34.40328501077377, 31.49384644785609], [34.403253664705296, 31.493880102267912], [34.4076, 31.4982]]], "type": "Polygon"}, "id": "0", "type": "Feature"}], "type": "FeatureCollection"});
+            geo_json_223c19197af51e2ee10cfff78d755960_add({"features": [{"geometry": {"coordinates": [[[34.4521, 31.5468], [34.4656225203788, 31.564243684824692], [34.467931257491, 31.563291204103344], [34.47241058854729, 31.560946124683078], [34.476594725732525, 31.55823067389379], [34.48044206500331, 31.555171869556315], [34.48391436428085, 31.551800142976678], [34.486977123730775, 31.548149035253477], [34.48959992825736, 31.544254862685968], [34.49175674882382, 31.540156354657892], [34.49342619964284, 31.535894267642984], [34.49459174874116, 31.53151097921148], [34.495241879884816, 31.52705006610948], [34.49537020435037, 31.522555870634413], [34.494975521538265, 31.518073059637047], [34.494061827940264, 31.513646180544914], [34.49263827448952, 31.50931921882155], [34.49071907283329, 31.505135161251882], [34.488323351569505, 31.50113556937662], [34.48547496397567, 31.49736016728895], [34.48220224922624, 31.49384644785609], [34.479825184506076, 31.491759569325655], [34.4269361998212, 31.519317737332816], [34.4521, 31.5468]]], "type": "Polygon"}, "id": "0", "type": "Feature"}], "type": "FeatureCollection"});
 
         
     
-            geo_json_4476a5bb373393fc9d7a6f750b5be22b.bindTooltip(
+            geo_json_223c19197af51e2ee10cfff78d755960.bindTooltip(
                 `<div>
                      Al Shifa Medical Hospital
                  </div>`,
@@ -158,38 +158,79 @@
             );
         
     
-            geo_json_4476a5bb373393fc9d7a6f750b5be22b.addTo(map_4fe1cc0217624af174669a67feb1eb6c);
+            geo_json_223c19197af51e2ee10cfff78d755960.addTo(map_d09627da6d8d561b82472a38eec41355);
         
     
-        function geo_json_255229fd40dda0773c16ae1720f31b78_styler(feature) {
+        function geo_json_dc3fdace0a59331d0cc36f921eb15e01_styler(feature) {
+            switch(feature.id) {
+                default:
+                    return {"color": "black", "fillColor": "#999999", "fillOpacity": 0.5, "opacity": 0.8, "weight": 2};
+            }
+        }
+
+        function geo_json_dc3fdace0a59331d0cc36f921eb15e01_onEachFeature(feature, layer) {
+
+            layer.on({
+            });
+        };
+        var geo_json_dc3fdace0a59331d0cc36f921eb15e01 = L.geoJson(null, {
+                onEachFeature: geo_json_dc3fdace0a59331d0cc36f921eb15e01_onEachFeature,
+            
+                style: geo_json_dc3fdace0a59331d0cc36f921eb15e01_styler,
+            ...{
+}
+        });
+
+        function geo_json_dc3fdace0a59331d0cc36f921eb15e01_add (data) {
+            geo_json_dc3fdace0a59331d0cc36f921eb15e01
+                .addData(data);
+        }
+            geo_json_dc3fdace0a59331d0cc36f921eb15e01_add({"features": [{"geometry": {"coordinates": [[[34.4076, 31.4982], [34.4269361998212, 31.519317737332816], [34.47982948089864, 31.491757330660864], [34.479658543256434, 31.491237655041576], [34.47773971242338, 31.487053585117707], [34.47534445346516, 31.483053981310547], [34.47249661502559, 31.47927856785007], [34.46922453079383, 31.475764837736953], [34.46556073670603, 31.47254768126014], [34.46154164694154, 31.469659040459213], [34.457207191958865, 31.467127592917574], [34.45260042217066, 31.464978467979638], [34.44776708117558, 31.46323299816403], [34.44275515274523, 31.461908508197535], [34.43761438600477, 31.461018143725234], [34.432395803444486, 31.46057074136415], [34.42715119655552, 31.46057074136415], [34.42193261399524, 31.461018143725234], [34.41679184725478, 31.461908508197535], [34.41177991882443, 31.46323299816403], [34.406946577829345, 31.464978467979638], [34.40233980804114, 31.467127592917567], [34.398005353058466, 31.469659040459213], [34.393986263293975, 31.47254768126014], [34.390322469206176, 31.475764837736953], [34.38777734525125, 31.478497921010064], [34.4076, 31.4982]]], "type": "Polygon"}, "id": "0", "type": "Feature"}], "type": "FeatureCollection"});
+
+        
+    
+            geo_json_dc3fdace0a59331d0cc36f921eb15e01.bindTooltip(
+                `<div>
+                     Al-Quds Hospital
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            geo_json_dc3fdace0a59331d0cc36f921eb15e01.addTo(map_d09627da6d8d561b82472a38eec41355);
+        
+    
+        function geo_json_723403f1b4b19d92360b5ff8169022fd_styler(feature) {
             switch(feature.id) {
                 default:
                     return {"color": "black", "fillColor": "#e41a1c", "fillOpacity": 0.5, "opacity": 0.8, "weight": 2};
             }
         }
 
-        function geo_json_255229fd40dda0773c16ae1720f31b78_onEachFeature(feature, layer) {
+        function geo_json_723403f1b4b19d92360b5ff8169022fd_onEachFeature(feature, layer) {
 
             layer.on({
             });
         };
-        var geo_json_255229fd40dda0773c16ae1720f31b78 = L.geoJson(null, {
-                onEachFeature: geo_json_255229fd40dda0773c16ae1720f31b78_onEachFeature,
+        var geo_json_723403f1b4b19d92360b5ff8169022fd = L.geoJson(null, {
+                onEachFeature: geo_json_723403f1b4b19d92360b5ff8169022fd_onEachFeature,
             
-                style: geo_json_255229fd40dda0773c16ae1720f31b78_styler,
+                style: geo_json_723403f1b4b19d92360b5ff8169022fd_styler,
             ...{
 }
         });
 
-        function geo_json_255229fd40dda0773c16ae1720f31b78_add (data) {
-            geo_json_255229fd40dda0773c16ae1720f31b78
+        function geo_json_723403f1b4b19d92360b5ff8169022fd_add (data) {
+            geo_json_723403f1b4b19d92360b5ff8169022fd
                 .addData(data);
         }
-            geo_json_255229fd40dda0773c16ae1720f31b78_add({"features": [{"geometry": {"coordinates": [[[34.26686408385525, 31.30732638365529], [34.264550358854756, 31.308407617209387], [34.26022319297878, 31.310939133698753], [34.256210864548095, 31.313827852663554], [34.25255323692695, 31.317045095550466], [34.24928666299598, 31.320558919265004], [34.246443623797816, 31.32433443239668], [34.24405240508398, 31.328334140775222], [34.24213681500247, 31.332518318971893], [34.24071594577849, 31.33684540409808], [34.239803981823826, 31.34127240802806], [34.239647484824005, 31.34305336895791], [34.2588, 31.3587], [34.295077094625114, 31.39185139195506], [34.297172213824005, 31.39176165317702], [34.3023543832232, 31.39109129775913], [34.30743288445108, 31.38998145405289], [34.31235717982581, 31.388443167219933], [34.31707827258974, 31.386491745652318], [34.32154919612137, 31.384146608027187], [34.325725482547696, 31.381431089338065], [34.329565606026755, 31.378372207869514], [34.33303139624149, 31.375000395475617], [34.33608841796467, 31.371349193890453], [34.33870631291428, 31.36745492013858], [34.34085910051766, 31.36335630441981], [34.34252543463343, 31.359094104114238], [34.34368881373948, 31.354710697786096], [34.344337742576386, 31.350249663258612], [34.344465843733715, 31.345755343982383], [34.344188218179006, 31.342595920692414], [34.26686408385525, 31.30732638365529]]], "type": "Polygon"}, "id": "0", "type": "Feature"}], "type": "FeatureCollection"});
+            geo_json_723403f1b4b19d92360b5ff8169022fd_add({"features": [{"geometry": {"coordinates": [[[34.2791156427363, 31.312959226722832], [34.24210889136921, 31.332603357014868], [34.24071594577849, 31.336845404098074], [34.23980398182383, 31.34127240802806], [34.239647484824005, 31.343053368957914], [34.2588, 31.3587], [34.295077094625114, 31.39185139195506], [34.297172213824005, 31.39176165317702], [34.3023543832232, 31.39109129775912], [34.30743288445108, 31.38998145405289], [34.31235717982581, 31.38844316721993], [34.31707827258974, 31.386491745652325], [34.32154919612137, 31.384146608027187], [34.325725482547696, 31.381431089338065], [34.329565606026755, 31.37837220786952], [34.33303139624148, 31.37500039547562], [34.336088417964675, 31.371349193890453], [34.33870631291428, 31.367454920138577], [34.34085910051767, 31.36335630441981], [34.34252543463343, 31.35909410411423], [34.34368881373948, 31.354710697786096], [34.344337742576386, 31.350249663258612], [34.344465843733715, 31.345755343982386], [34.34419077015272, 31.342624962562173], [34.2791156427363, 31.312959226722832]]], "type": "Polygon"}, "id": "0", "type": "Feature"}], "type": "FeatureCollection"});
 
         
     
-            geo_json_255229fd40dda0773c16ae1720f31b78.bindTooltip(
+            geo_json_723403f1b4b19d92360b5ff8169022fd.bindTooltip(
                 `<div>
                      Nasser Hospital
                  </div>`,
@@ -199,38 +240,38 @@
             );
         
     
-            geo_json_255229fd40dda0773c16ae1720f31b78.addTo(map_4fe1cc0217624af174669a67feb1eb6c);
+            geo_json_723403f1b4b19d92360b5ff8169022fd.addTo(map_d09627da6d8d561b82472a38eec41355);
         
     
-        function geo_json_c8adf77008f66bbd51b59a6f120377cc_styler(feature) {
+        function geo_json_45c06e28499247f4d3e47672d23d14e2_styler(feature) {
             switch(feature.id) {
                 default:
                     return {"color": "black", "fillColor": "#377eb8", "fillOpacity": 0.5, "opacity": 0.8, "weight": 2};
             }
         }
 
-        function geo_json_c8adf77008f66bbd51b59a6f120377cc_onEachFeature(feature, layer) {
+        function geo_json_45c06e28499247f4d3e47672d23d14e2_onEachFeature(feature, layer) {
 
             layer.on({
             });
         };
-        var geo_json_c8adf77008f66bbd51b59a6f120377cc = L.geoJson(null, {
-                onEachFeature: geo_json_c8adf77008f66bbd51b59a6f120377cc_onEachFeature,
+        var geo_json_45c06e28499247f4d3e47672d23d14e2 = L.geoJson(null, {
+                onEachFeature: geo_json_45c06e28499247f4d3e47672d23d14e2_onEachFeature,
             
-                style: geo_json_c8adf77008f66bbd51b59a6f120377cc_styler,
+                style: geo_json_45c06e28499247f4d3e47672d23d14e2_styler,
             ...{
 }
         });
 
-        function geo_json_c8adf77008f66bbd51b59a6f120377cc_add (data) {
-            geo_json_c8adf77008f66bbd51b59a6f120377cc
+        function geo_json_45c06e28499247f4d3e47672d23d14e2_add (data) {
+            geo_json_45c06e28499247f4d3e47672d23d14e2
                 .addData(data);
         }
-            geo_json_c8adf77008f66bbd51b59a6f120377cc_add({"features": [{"geometry": {"coordinates": [[[34.3686, 31.303], [34.3575, 31.2856], [34.32046240488335, 31.2581339182281], [34.316638479355056, 31.2581339182281], [34.311431066985314, 31.258581336408707], [34.306301304745716, 31.25947173231336], [34.30130010644828, 31.260796268915655], [34.296477115195685, 31.262541799966336], [34.29188021242204, 31.264690999951238], [34.28755504406985, 31.26722253539603], [34.28354456853139, 31.27011127585003], [34.27988863078424, 31.27332854249331], [34.276623566910594, 31.27684239194137], [34.27378184290986, 31.28061793247537], [34.27139173139662, 31.284617669603556], [34.269477029421154, 31.28880187756758], [34.26805682026436, 31.293128993146247], [34.2671452816406, 31.297556027882955], [34.26675154229909, 31.302038994673545], [34.26687958854741, 31.306533344500977], [34.26700418711273, 31.307390288373682], [34.34447612400617, 31.342727241984573], [34.34885271615386, 31.340430507966126], [34.35302707204022, 31.33771497252025], [34.35686542112144, 31.334656072016884], [34.36032961072705, 31.331284238445356], [34.363385221517035, 31.327633013696627], [34.36600190918005, 31.32373871497424], [34.36815370506094, 31.31964007267945], [34.3684220822805, 31.318953288848288], [34.3686, 31.303]]], "type": "Polygon"}, "id": "0", "type": "Feature"}], "type": "FeatureCollection"});
+            geo_json_45c06e28499247f4d3e47672d23d14e2_add({"features": [{"geometry": {"coordinates": [[[34.344447770686735, 31.3427421211488], [34.34885271615386, 31.340430507966126], [34.35302707204022, 31.33771497252025], [34.35686542112144, 31.334656072016884], [34.36032961072706, 31.331284238445356], [34.36338522151703, 31.327633013696627], [34.366001909180056, 31.32373871497424], [34.36815370506094, 31.31964007267945], [34.3684220822805, 31.318953288848288], [34.3686, 31.303], [34.3575, 31.2856], [34.32046240488335, 31.2581339182281], [34.316638479355056, 31.2581339182281], [34.311431066985314, 31.258581336408707], [34.306301304745716, 31.25947173231336], [34.30130010644828, 31.260796268915655], [34.296477115195685, 31.262541799966336], [34.293518940666445, 31.263924841759177], [34.2791156427363, 31.312959226722832], [34.344447770686735, 31.3427421211488]]], "type": "Polygon"}, "id": "0", "type": "Feature"}], "type": "FeatureCollection"});
 
         
     
-            geo_json_c8adf77008f66bbd51b59a6f120377cc.bindTooltip(
+            geo_json_45c06e28499247f4d3e47672d23d14e2.bindTooltip(
                 `<div>
                      European Hospital
                  </div>`,
@@ -240,17 +281,58 @@
             );
         
     
-            geo_json_c8adf77008f66bbd51b59a6f120377cc.addTo(map_4fe1cc0217624af174669a67feb1eb6c);
+            geo_json_45c06e28499247f4d3e47672d23d14e2.addTo(map_d09627da6d8d561b82472a38eec41355);
         
     
-            var marker_e42028fe637b51d4d517cdd1b3836927 = L.marker(
+        function geo_json_037a6f39423f70d3e633fca4c054370b_styler(feature) {
+            switch(feature.id) {
+                default:
+                    return {"color": "black", "fillColor": "#999999", "fillOpacity": 0.5, "opacity": 0.8, "weight": 2};
+            }
+        }
+
+        function geo_json_037a6f39423f70d3e633fca4c054370b_onEachFeature(feature, layer) {
+
+            layer.on({
+            });
+        };
+        var geo_json_037a6f39423f70d3e633fca4c054370b = L.geoJson(null, {
+                onEachFeature: geo_json_037a6f39423f70d3e633fca4c054370b_onEachFeature,
+            
+                style: geo_json_037a6f39423f70d3e633fca4c054370b_styler,
+            ...{
+}
+        });
+
+        function geo_json_037a6f39423f70d3e633fca4c054370b_add (data) {
+            geo_json_037a6f39423f70d3e633fca4c054370b
+                .addData(data);
+        }
+            geo_json_037a6f39423f70d3e633fca4c054370b_add({"features": [{"geometry": {"coordinates": [[[34.29348281749551, 31.26404781897444], [34.29178387561064, 31.261790224359878], [34.28851933090631, 31.258276366056176], [34.284863974150774, 31.255059091237676], [34.28085413565078, 31.252170343388624], [34.27652965406242, 31.24963880142075], [34.271933480972905, 31.247489595866803], [34.267111255102925, 31.24574406027203], [34.26211085031856, 31.244419520209018], [34.260777795188964, 31.24418809851467], [34.2305880991769, 31.33024885861306], [34.233673741378745, 31.331213381235955], [34.23874908472267, 31.332323233939118], [34.24187448709423, 31.3327277848003], [34.2791156427363, 31.312959226722832], [34.29348281749551, 31.26404781897444]]], "type": "Polygon"}, "id": "0", "type": "Feature"}], "type": "FeatureCollection"});
+
+        
+    
+            geo_json_037a6f39423f70d3e633fca4c054370b.bindTooltip(
+                `<div>
+                     Kuwait Hospital
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            geo_json_037a6f39423f70d3e633fca4c054370b.addTo(map_d09627da6d8d561b82472a38eec41355);
+        
+    
+            var marker_f819bb37e7dcc26dded7da30e6d1b91f = L.marker(
                 [31.52369093, 34.44274363],
                 {
 }
-            ).addTo(map_4fe1cc0217624af174669a67feb1eb6c);
+            ).addTo(map_d09627da6d8d561b82472a38eec41355);
         
     
-            var icon_692d851f0e0e8f38fc5d6b15f131380b = L.AwesomeMarkers.icon(
+            var icon_373f99a5e26ea57b92f2f1240e504a6b = L.AwesomeMarkers.icon(
                 {
   "markerColor": "red",
   "iconColor": "white",
@@ -261,34 +343,72 @@
             );
         
     
-        var popup_952394b4216bbcdf5ef1cfeb035ab9ec = L.popup({
+        var popup_d48b8bc38aa1a71d00ab14a7e2ebf161 = L.popup({
   "maxWidth": "100%",
 });
 
         
             
-                var html_154ac70611747c1131d8476919c623d6 = $(`<div id="html_154ac70611747c1131d8476919c623d6" style="width: 100.0%; height: 100.0%;">Al Shifa Medical Hospital</div>`)[0];
-                popup_952394b4216bbcdf5ef1cfeb035ab9ec.setContent(html_154ac70611747c1131d8476919c623d6);
+                var html_c54b1c91c74d5a3b34bce6cc9693cf77 = $(`<div id="html_c54b1c91c74d5a3b34bce6cc9693cf77" style="width: 100.0%; height: 100.0%;">Al Shifa Medical Hospital</div>`)[0];
+                popup_d48b8bc38aa1a71d00ab14a7e2ebf161.setContent(html_c54b1c91c74d5a3b34bce6cc9693cf77);
             
         
 
-        marker_e42028fe637b51d4d517cdd1b3836927.bindPopup(popup_952394b4216bbcdf5ef1cfeb035ab9ec)
+        marker_f819bb37e7dcc26dded7da30e6d1b91f.bindPopup(popup_d48b8bc38aa1a71d00ab14a7e2ebf161)
         ;
 
         
     
     
-                marker_e42028fe637b51d4d517cdd1b3836927.setIcon(icon_692d851f0e0e8f38fc5d6b15f131380b);
+                marker_f819bb37e7dcc26dded7da30e6d1b91f.setIcon(icon_373f99a5e26ea57b92f2f1240e504a6b);
             
     
-            var marker_e862933ae83d5c1a41478012a706f056 = L.marker(
+            var marker_b2eb88b452bf5e434036d4c2b4ff5f58 = L.marker(
+                [31.5056094, 34.4297735],
+                {
+}
+            ).addTo(map_d09627da6d8d561b82472a38eec41355);
+        
+    
+            var icon_5ee66aac1582fc1a4af1a1bb3a21422f = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "red",
+  "iconColor": "white",
+  "icon": "hospital-o",
+  "prefix": "fa",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_84989e46ce3ee331d5e93e2380ec838c = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_67c78310b02c23ea87133bb948ec57a6 = $(`<div id="html_67c78310b02c23ea87133bb948ec57a6" style="width: 100.0%; height: 100.0%;">Al-Quds Hospital</div>`)[0];
+                popup_84989e46ce3ee331d5e93e2380ec838c.setContent(html_67c78310b02c23ea87133bb948ec57a6);
+            
+        
+
+        marker_b2eb88b452bf5e434036d4c2b4ff5f58.bindPopup(popup_84989e46ce3ee331d5e93e2380ec838c)
+        ;
+
+        
+    
+    
+                marker_b2eb88b452bf5e434036d4c2b4ff5f58.setIcon(icon_5ee66aac1582fc1a4af1a1bb3a21422f);
+            
+    
+            var marker_3920227f5cfc1ce1ad706fc065322921 = L.marker(
                 [31.34689036, 34.29193795],
                 {
 }
-            ).addTo(map_4fe1cc0217624af174669a67feb1eb6c);
+            ).addTo(map_d09627da6d8d561b82472a38eec41355);
         
     
-            var icon_2bec8f19f92b562b57584c45721cd3f4 = L.AwesomeMarkers.icon(
+            var icon_023d8fe44a3164e59a23bad4e75ea3a8 = L.AwesomeMarkers.icon(
                 {
   "markerColor": "red",
   "iconColor": "white",
@@ -299,34 +419,34 @@
             );
         
     
-        var popup_5196016bbf320e879542915c7dea8319 = L.popup({
+        var popup_c7ecfb2a0f3d357d4f1f66437079185a = L.popup({
   "maxWidth": "100%",
 });
 
         
             
-                var html_7a690021a6a0f18b6113da99f9337159 = $(`<div id="html_7a690021a6a0f18b6113da99f9337159" style="width: 100.0%; height: 100.0%;">Nasser Hospital</div>`)[0];
-                popup_5196016bbf320e879542915c7dea8319.setContent(html_7a690021a6a0f18b6113da99f9337159);
+                var html_f0450dfca1f2323e222ff5a5f28d719c = $(`<div id="html_f0450dfca1f2323e222ff5a5f28d719c" style="width: 100.0%; height: 100.0%;">Nasser Hospital</div>`)[0];
+                popup_c7ecfb2a0f3d357d4f1f66437079185a.setContent(html_f0450dfca1f2323e222ff5a5f28d719c);
             
         
 
-        marker_e862933ae83d5c1a41478012a706f056.bindPopup(popup_5196016bbf320e879542915c7dea8319)
+        marker_3920227f5cfc1ce1ad706fc065322921.bindPopup(popup_c7ecfb2a0f3d357d4f1f66437079185a)
         ;
 
         
     
     
-                marker_e862933ae83d5c1a41478012a706f056.setIcon(icon_2bec8f19f92b562b57584c45721cd3f4);
+                marker_3920227f5cfc1ce1ad706fc065322921.setIcon(icon_023d8fe44a3164e59a23bad4e75ea3a8);
             
     
-            var marker_4f900cd9635e49ca4e12ed8a4d1ed5f5 = L.marker(
+            var marker_a6d700beef0c9c99044907a51b4eca7f = L.marker(
                 [31.303174, 34.31925517],
                 {
 }
-            ).addTo(map_4fe1cc0217624af174669a67feb1eb6c);
+            ).addTo(map_d09627da6d8d561b82472a38eec41355);
         
     
-            var icon_624939c0b77cc9e3cf62455f92853b43 = L.AwesomeMarkers.icon(
+            var icon_c29d06d3981bf252928d04958f62bb60 = L.AwesomeMarkers.icon(
                 {
   "markerColor": "red",
   "iconColor": "white",
@@ -337,55 +457,93 @@
             );
         
     
-        var popup_26612470de7c6f1fa56d1c1391408dbf = L.popup({
+        var popup_e13c45cdee2cff6949bae8caa14e2283 = L.popup({
   "maxWidth": "100%",
 });
 
         
             
-                var html_23ec7364bd2b94ded3e5cfc2694367e8 = $(`<div id="html_23ec7364bd2b94ded3e5cfc2694367e8" style="width: 100.0%; height: 100.0%;">European Hospital</div>`)[0];
-                popup_26612470de7c6f1fa56d1c1391408dbf.setContent(html_23ec7364bd2b94ded3e5cfc2694367e8);
+                var html_e1aa3bdcce096c99b3912218a1fc1a4f = $(`<div id="html_e1aa3bdcce096c99b3912218a1fc1a4f" style="width: 100.0%; height: 100.0%;">European Hospital</div>`)[0];
+                popup_e13c45cdee2cff6949bae8caa14e2283.setContent(html_e1aa3bdcce096c99b3912218a1fc1a4f);
             
         
 
-        marker_4f900cd9635e49ca4e12ed8a4d1ed5f5.bindPopup(popup_26612470de7c6f1fa56d1c1391408dbf)
+        marker_a6d700beef0c9c99044907a51b4eca7f.bindPopup(popup_e13c45cdee2cff6949bae8caa14e2283)
         ;
 
         
     
     
-                marker_4f900cd9635e49ca4e12ed8a4d1ed5f5.setIcon(icon_624939c0b77cc9e3cf62455f92853b43);
+                marker_a6d700beef0c9c99044907a51b4eca7f.setIcon(icon_c29d06d3981bf252928d04958f62bb60);
             
     
-        function geo_json_b3db3c3681c19ec5ef9b8ade15144144_styler(feature) {
+            var marker_e6a308d0a3a6ecc7e129ce8c2387c9cc = L.marker(
+                [31.28812189, 34.24915904],
+                {
+}
+            ).addTo(map_d09627da6d8d561b82472a38eec41355);
+        
+    
+            var icon_07d487234cef37e4905ee3f03834a59d = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "red",
+  "iconColor": "white",
+  "icon": "hospital-o",
+  "prefix": "fa",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_4b05f929bb70b5048a165158e53485af = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_d913e7de23bc10d2893339739f5d2c01 = $(`<div id="html_d913e7de23bc10d2893339739f5d2c01" style="width: 100.0%; height: 100.0%;">Kuwait Hospital</div>`)[0];
+                popup_4b05f929bb70b5048a165158e53485af.setContent(html_d913e7de23bc10d2893339739f5d2c01);
+            
+        
+
+        marker_e6a308d0a3a6ecc7e129ce8c2387c9cc.bindPopup(popup_4b05f929bb70b5048a165158e53485af)
+        ;
+
+        
+    
+    
+                marker_e6a308d0a3a6ecc7e129ce8c2387c9cc.setIcon(icon_07d487234cef37e4905ee3f03834a59d);
+            
+    
+        function geo_json_0c309b1001c74c86c967c3587785f7fc_styler(feature) {
             switch(feature.id) {
                 default:
                     return {"color": "black", "fillColor": "transparent", "opacity": 1.0, "weight": 3};
             }
         }
 
-        function geo_json_b3db3c3681c19ec5ef9b8ade15144144_onEachFeature(feature, layer) {
+        function geo_json_0c309b1001c74c86c967c3587785f7fc_onEachFeature(feature, layer) {
 
             layer.on({
             });
         };
-        var geo_json_b3db3c3681c19ec5ef9b8ade15144144 = L.geoJson(null, {
-                onEachFeature: geo_json_b3db3c3681c19ec5ef9b8ade15144144_onEachFeature,
+        var geo_json_0c309b1001c74c86c967c3587785f7fc = L.geoJson(null, {
+                onEachFeature: geo_json_0c309b1001c74c86c967c3587785f7fc_onEachFeature,
             
-                style: geo_json_b3db3c3681c19ec5ef9b8ade15144144_styler,
+                style: geo_json_0c309b1001c74c86c967c3587785f7fc_styler,
             ...{
 }
         });
 
-        function geo_json_b3db3c3681c19ec5ef9b8ade15144144_add (data) {
-            geo_json_b3db3c3681c19ec5ef9b8ade15144144
+        function geo_json_0c309b1001c74c86c967c3587785f7fc_add (data) {
+            geo_json_0c309b1001c74c86c967c3587785f7fc
                 .addData(data);
         }
-            geo_json_b3db3c3681c19ec5ef9b8ade15144144_add({"bbox": [34.2293, 31.2236, 34.5463, 31.5944], "features": [{"bbox": [34.2293, 31.2236, 34.5463, 31.5944], "geometry": {"coordinates": [[[34.2305, 31.3305], [34.2293, 31.3346], [34.2588, 31.3587], [34.2971, 31.3937], [34.3254, 31.4165], [34.4076, 31.4982], [34.4521, 31.5468], [34.489, 31.5944], [34.5325, 31.5598], [34.5461, 31.5426], [34.5463, 31.5234], [34.5374, 31.5099], [34.5082, 31.5039], [34.4079, 31.4206], [34.3746, 31.3838], [34.3658, 31.3588], [34.3683, 31.3299], [34.3686, 31.303], [34.3575, 31.2856], [34.313, 31.2526], [34.268, 31.2236], [34.2305, 31.3305]]], "type": "Polygon"}, "id": "0", "properties": {"CC_1": "NA", "COUNTRY": "Palestine", "ENGTYPE_1": "District", "GID_0": "PSE", "GID_1": "PSE.1_1", "HASC_1": "PS.GZ", "ISO_1": "PS-GZA", "NAME_1": "Gaza", "NL_NAME_1": "NA", "TYPE_1": "District", "VARNAME_1": "NA"}, "type": "Feature"}], "type": "FeatureCollection"});
+            geo_json_0c309b1001c74c86c967c3587785f7fc_add({"bbox": [34.2293, 31.2236, 34.5463, 31.5944], "features": [{"bbox": [34.2293, 31.2236, 34.5463, 31.5944], "geometry": {"coordinates": [[[34.2305, 31.3305], [34.2293, 31.3346], [34.2588, 31.3587], [34.2971, 31.3937], [34.3254, 31.4165], [34.4076, 31.4982], [34.4521, 31.5468], [34.489, 31.5944], [34.5325, 31.5598], [34.5461, 31.5426], [34.5463, 31.5234], [34.5374, 31.5099], [34.5082, 31.5039], [34.4079, 31.4206], [34.3746, 31.3838], [34.3658, 31.3588], [34.3683, 31.3299], [34.3686, 31.303], [34.3575, 31.2856], [34.313, 31.2526], [34.268, 31.2236], [34.2305, 31.3305]]], "type": "Polygon"}, "id": "0", "properties": {"CC_1": "NA", "COUNTRY": "Palestine", "ENGTYPE_1": "District", "GID_0": "PSE", "GID_1": "PSE.1_1", "HASC_1": "PS.GZ", "ISO_1": "PS-GZA", "NAME_1": "Gaza", "NL_NAME_1": "NA", "TYPE_1": "District", "VARNAME_1": "NA"}, "type": "Feature"}], "type": "FeatureCollection"});
 
         
     
-            geo_json_b3db3c3681c19ec5ef9b8ade15144144.addTo(map_4fe1cc0217624af174669a67feb1eb6c);
+            geo_json_0c309b1001c74c86c967c3587785f7fc.addTo(map_d09627da6d8d561b82472a38eec41355);
         
 </script>
 </html>
