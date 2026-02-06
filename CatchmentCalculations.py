@@ -570,7 +570,7 @@ def main():
 
     hospital_intervals = build_hospital_open_intervals(hospitals_df, schedule_meta)
 
-    # determine date range
+    # determine date range (kept for diagnostics / compatibility)
     all_dates = [d for (_, _, d) in schedule_meta if d is not None]
     for _, row in hospitals_df.iterrows():
         for col, _, dt in schedule_meta:
@@ -585,9 +585,10 @@ def main():
     if not all_dates:
         raise ValueError("Could not determine date range from Excel schedule headers/cells.")
 
+    # original min/max (still useful to know overall bounds)
     START_DATE = min(all_dates)
     END_DATE = max(all_dates)
-    print(f"Date range: {START_DATE.date()} to {END_DATE.date()}")
+    print(f"Overall schedule date range (from spreadsheet): {START_DATE.date()} to {END_DATE.date()}")
 
     # create hospitals GeoDataFrame
     hospitals_gdf = gpd.GeoDataFrame(
@@ -615,15 +616,45 @@ def main():
     total_gaza_area_km2 = total_gaza_area_m2 / 1e6
     print(f"Total Gaza area: {total_gaza_area_km2:.2f} km²")
 
-    # iterate two-week periods
-    print("Calculating catchment areas for two-week periods...")
+    # -------------------------
+    # Build two-week periods INSIDE the user-specified ranges
+    # -------------------------
+    date_ranges = [
+        (datetime(2023, 10, 7), datetime(2023, 11, 3)),
+        (datetime(2023, 12, 11), datetime(2024, 4, 28)),
+        (datetime(2024, 11, 11), datetime(2025, 2, 2)),
+    ]
+
+    # normalize ranges (ensure start < end)
+    norm_ranges = []
+    for a, b in date_ranges:
+        if a >= b:
+            continue
+        norm_ranges.append((a, b))
+
+    periods = []
+    two_weeks = timedelta(days=14)
+    for (rstart, rend) in norm_ranges:
+        cur = rstart
+        while cur < rend:
+            period_start = cur
+            period_end = min(cur + two_weeks, rend)
+            periods.append((period_start, period_end))
+            cur = period_end  # jump by each two-week chunk inside this range
+
+    if not periods:
+        raise ValueError("No periods were generated from the provided date_ranges.")
+
+    print(f"Generated {len(periods)} two-week periods from provided ranges.")
+    for i, (ps, pe) in enumerate(periods, 1):
+        print(f"  Period {i}: {ps.date()} to {pe.date()}")
+
+    # iterate periods and compute catchments
+    print("Calculating catchment areas for defined two-week periods...")
     results = []
-    current_date = START_DATE
     period_num = 1
 
-    while current_date < END_DATE:
-        period_start = current_date
-        period_end = min(current_date + timedelta(days=14), END_DATE)
+    for (period_start, period_end) in periods:
         print(f"\nPeriod {period_num}: {period_start.date()} to {period_end.date()}")
 
         catchment_areas = calculate_catchment_area(gaza_gdf, hospitals_gdf, hospital_intervals, period_start, period_end)
@@ -636,13 +667,12 @@ def main():
                 row[hosp_name] = catchment_areas.get(hosp_name, 0.0)
         results.append(row)
 
-        # save HTML for first period
+        # save HTML for the first processed period only
         if period_num == 1:
             html_name = f"catchment_visualization_{period_start.strftime('%Y%m%d')}_to_{period_end.strftime('%Y%m%d')}.html"
             html_path = os.path.join(OUTPUT_DIR, html_name)
             create_html_visualization(gaza_gdf, hospitals_gdf, hospital_intervals, period_start, period_end, html_path)
 
-        current_date = period_end
         period_num += 1
 
     # Prepare Excel output with TWO sheets:
@@ -705,7 +735,6 @@ def main():
 
     print("\nDone.")
     print("=" * 70)
-
 
 if __name__ == "__main__":
     main()
