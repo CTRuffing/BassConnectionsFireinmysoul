@@ -41,7 +41,7 @@ df_selected <- df2 %>%
     period_start = as.Date(sub("^(\\d{4}-\\d{2}-\\d{2}).*$", "\\1", period.x))
   ) %>%
   mutate(
-    Selected = case_when(
+    encatch_area = case_when(
       period_start >= as.Date("2023-10-07") & period_start <= as.Date("2023-11-03") ~
         as.numeric(`Al Shifa Medical Hospital`),
       period_start >= as.Date("2023-12-11") & period_start <= as.Date("2024-04-28") ~
@@ -51,7 +51,33 @@ df_selected <- df2 %>%
       TRUE ~ NA_real_
     )
   ) %>%
-  select(period.x, Selected)
+  select(period.x, encatch_area)
+
+
+catchment_percent <- as.data.frame(t(catchment_percent))
+
+colnames(catchment_percent) <- catchment_percent[1,]
+catchment_percent <- catchment_percent[-1, ]
+catchment_percent <- catchment_percent[rownames(catchment_percent) != "Average",]
+
+df3 <- catchment_percent %>% rownames_to_column(var = "period.x")
+
+df_selected_2 <- df3 %>%
+  mutate(
+    period_start = as.Date(sub("^(\\d{4}-\\d{2}-\\d{2}).*$", "\\1", period.x))
+  ) %>%
+  mutate(
+    encatch_percent = case_when(
+      period_start >= as.Date("2023-10-07") & period_start <= as.Date("2023-11-03") ~
+        as.numeric(`Al Shifa Medical Hospital`),
+      period_start >= as.Date("2023-12-11") & period_start <= as.Date("2024-04-28") ~
+        as.numeric(`European Hospital`),
+      period_start >= as.Date("2024-11-11") & period_start <= as.Date("2025-02-02") ~
+        as.numeric(`Nasser Hospital`),
+      TRUE ~ NA_real_
+    )
+  ) %>%
+  select(period.x, encatch_percent)
 
 ```
 
@@ -67,7 +93,12 @@ injuries <- injuries |>
   arrange(desc(period_start))
 
 dataset <- full_join(injuries, attacks, by = "period_start")
+dataset <- dataset |>
+  drop_na()
 dataset <- full_join(dataset, df_selected, by = "period.x")
+dataset <- full_join(dataset, df_selected_2, by = "period.x")
+dataset <- dataset |>
+  drop_na()
 
 write_xlsx(dataset, "aggregated_dataset.xlsx")
 
