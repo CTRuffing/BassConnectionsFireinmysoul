@@ -633,7 +633,7 @@ def main():
         norm_ranges.append((a, b))
 
     periods = []
-    two_weeks = timedelta(days=14)
+    two_weeks = timedelta(days=13)
     for (rstart, rend) in norm_ranges:
         cur = rstart
         while cur < rend:
