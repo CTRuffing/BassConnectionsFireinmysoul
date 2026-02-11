@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css"/>
+    
+            <meta name="viewport" content="width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            <style>
+                #map_631dc89fac3aa161d1f2f1ae4ab61cfd {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+
+            <style>html, body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            </style>
+
+            <style>#map {
+                position:absolute;
+                top:0;
+                bottom:0;
+                right:0;
+                left:0;
+                }
+            </style>
+
+            <script>
+                L_NO_TOUCH = false;
+                L_DISABLE_3D = false;
+            </script>
+
+        
+</head>
+<body>
+    
+    
+    <div style="position: fixed; top: 10px; left: 50px; width: 350px; padding: 10px;
+                background: white; border: 2px solid grey; z-index: 9999; font-size: 14px;">
+    <b>Catchment Areas & Hospital Locations</b><br>
+    Period: 2024-11-11 to 2024-11-24
+    </div>
+    
+            <div class="folium-map" id="map_631dc89fac3aa161d1f2f1ae4ab61cfd" ></div>
+        
+</body>
+<script>
+    
+    
+            var map_631dc89fac3aa161d1f2f1ae4ab61cfd = L.map(
+                "map_631dc89fac3aa161d1f2f1ae4ab61cfd",
+                {
+                    center: [31.3609489125, 34.322531415],
+                    crs: L.CRS.EPSG3857,
+                    ...{
+  "zoom": 11,
+  "zoomControl": true,
+  "preferCanvas": false,
+}
+
+                }
+            );
+
+            
+
+        
+    
+            var tile_layer_8a7408f55f374a99d2d587cbee2afeeb = L.tileLayer(
+                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                {
+  "minZoom": 0,
+  "maxZoom": 19,
+  "maxNativeZoom": 19,
+  "noWrap": false,
+  "attribution": "\u0026copy; \u003ca href=\"https://www.openstreetmap.org/copyright\"\u003eOpenStreetMap\u003c/a\u003e contributors",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            tile_layer_8a7408f55f374a99d2d587cbee2afeeb.addTo(map_631dc89fac3aa161d1f2f1ae4ab61cfd);
+        
+    
+            var circle_marker_02d36b60e82fc6983a1e353a914a0fd1 = L.circleMarker(
+                [31.5056094, 34.4297735],
+                {"bubblingMouseEvents": true, "color": "#e41a1c", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#e41a1c", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 10, "stroke": true, "weight": 2}
+            ).addTo(map_631dc89fac3aa161d1f2f1ae4ab61cfd);
+        
+    
+        var popup_c9c64243d9a7788cb0ee61b41592958a = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_852927301a9011b2f63d23ed990e6ac5 = $(`<div id="html_852927301a9011b2f63d23ed990e6ac5" style="width: 100.0%; height: 100.0%;"><b>Al-Quds Hospital</b></div>`)[0];
+                popup_c9c64243d9a7788cb0ee61b41592958a.setContent(html_852927301a9011b2f63d23ed990e6ac5);
+            
+        
+
+        circle_marker_02d36b60e82fc6983a1e353a914a0fd1.bindPopup(popup_c9c64243d9a7788cb0ee61b41592958a)
+        ;
+
+        
+    
+    
+            var circle_marker_75847112433b3a444e3e2561cc7a043e = L.circleMarker(
+                [31.34689036, 34.29193795],
+                {"bubblingMouseEvents": true, "color": "#377eb8", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#377eb8", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 10, "stroke": true, "weight": 2}
+            ).addTo(map_631dc89fac3aa161d1f2f1ae4ab61cfd);
+        
+    
+        var popup_72e0ca28028dd28ce060ecdde58bed5e = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_f31b4dcf285f8077a50bed3d53ace395 = $(`<div id="html_f31b4dcf285f8077a50bed3d53ace395" style="width: 100.0%; height: 100.0%;"><b>Nasser Hospital</b></div>`)[0];
+                popup_72e0ca28028dd28ce060ecdde58bed5e.setContent(html_f31b4dcf285f8077a50bed3d53ace395);
+            
+        
+
+        circle_marker_75847112433b3a444e3e2561cc7a043e.bindPopup(popup_72e0ca28028dd28ce060ecdde58bed5e)
+        ;
+
+        
+    
+    
+            var circle_marker_66ed5c9ae1dbc4102a32efc500bc7341 = L.circleMarker(
+                [31.303174, 34.31925517],
+                {"bubblingMouseEvents": true, "color": "#4daf4a", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#4daf4a", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 10, "stroke": true, "weight": 2}
+            ).addTo(map_631dc89fac3aa161d1f2f1ae4ab61cfd);
+        
+    
+        var popup_9b9ba37357b8538bf5dbb1b46f7a5996 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_cf2f915acad2a3aa7b3da5c212fdf49a = $(`<div id="html_cf2f915acad2a3aa7b3da5c212fdf49a" style="width: 100.0%; height: 100.0%;"><b>European Hospital</b></div>`)[0];
+                popup_9b9ba37357b8538bf5dbb1b46f7a5996.setContent(html_cf2f915acad2a3aa7b3da5c212fdf49a);
+            
+        
+
+        circle_marker_66ed5c9ae1dbc4102a32efc500bc7341.bindPopup(popup_9b9ba37357b8538bf5dbb1b46f7a5996)
+        ;
+
+        
+    
+    
+            var circle_marker_f78b7040b8c3ba383742f3a24ec46b56 = L.circleMarker(
+                [31.28812189, 34.24915904],
+                {"bubblingMouseEvents": true, "color": "#984ea3", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#984ea3", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 10, "stroke": true, "weight": 2}
+            ).addTo(map_631dc89fac3aa161d1f2f1ae4ab61cfd);
+        
+    
+        var popup_6d2eaf912bbf9bfb7c6db6d0f2c40b95 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_93f296ce9246014eb264208d142178ad = $(`<div id="html_93f296ce9246014eb264208d142178ad" style="width: 100.0%; height: 100.0%;"><b>Kuwait Hospital</b></div>`)[0];
+                popup_6d2eaf912bbf9bfb7c6db6d0f2c40b95.setContent(html_93f296ce9246014eb264208d142178ad);
+            
+        
+
+        circle_marker_f78b7040b8c3ba383742f3a24ec46b56.bindPopup(popup_6d2eaf912bbf9bfb7c6db6d0f2c40b95)
+        ;
+
+        
+    
+    
+            var polygon_45cf3560b0d64340dc3c869c721b6c0c = L.polygon(
+                [[31.4982, 34.4076], [31.546533465122806, 34.451855950575414], [31.546304916524942, 34.45245239959317], [31.545294198953524, 34.45477452482222], [31.544186331106452, 34.45703539077165], [31.542984027463525, 34.45922946007504], [31.541690233782205, 34.46135135963462], [31.540308119854355, 34.46339589380766], [31.538841071713296, 34.4653580571504], [31.537292683310692, 34.467233046687845], [31.535666747683887, 34.469016273679436], [31.53396724763583, 34.47070337485145], [31.532198345950533, 34.47229022306888], [31.530364375168695, 34.47377293742036], [31.5284698269485, 34.4751478926921], [31.526519341038405, 34.47641172820744], [31.52451769388887, 34.47756135601096], [31.522469786931463, 34.47859396837742], [31.520380634554275, 34.47950704462765], [31.51825535180336, 34.48029835723527], [31.5160991418405, 34.48096597720983], [31.5139172831884, 34.48150827874401], [31.511715116794548, 34.4819239431141], [31.509498032945753, 34.482211961825], [31.507271458065283, 34.48237163899293], [31.50504084142537, 34.482402592960774], [31.502811641807394, 34.482304757142984], [31.500589314142516, 34.48207838009888], [31.49837929616557, 34.48172402483501], [31.496186995114595, 34.48124256733916], [31.494017774508816, 34.48063519435046], [31.491876941037038, 34.479903400371924], [31.489769731588524, 34.47904898393343], [31.487701300457974, 34.47807404311525], [31.48567670675562, 34.47698097034363], [31.48370090205303, 34.475772446471964], [31.481778718294702, 34.47445143416256], [31.479914856004562, 34.47302117058589], [31.478113872816124, 34.471485159455575], [31.47638017235385, 34.469847162419065], [31.474717993492813, 34.468111189825265], [31.473131400022336, 34.466281490892385], [31.471624270738793, 34.4643625432996], [31.47020028999127, 34.462359042228755], [31.468862938702927, 34.46027588888238], [31.46761548588965, 34.45811817850647], [31.466460980696414, 34.4558911879468], [31.465402244970456, 34.453600362769286], [31.46444186638913, 34.45125130397536], [31.463582192158896, 34.44884975434461], [31.46282532330058, 34.4464015844375], [31.462173109534614, 34.44391277829205], [31.461627144778515, 34.44138941884858], [31.461188763267284, 34.438837673137876], [31.4608590363063, 34.43626377726799], [31.46063876966403, 34.433674021245814], [31.460528501611268, 34.43107473366979], [31.460528501611275, 34.42847226633022], [31.46063876966403, 34.42587297875419], [31.4608590363063, 34.42328322273202], [31.46118876326729, 34.42070932686213], [31.461627144778515, 34.418157581151426], [31.462173109534614, 34.415634221707954], [31.462825323300585, 34.413145415562504], [31.463582192158896, 34.4106972456554], [31.46444186638913, 34.408295696024645], [31.465402244970456, 34.40594663723072], [31.466460980696414, 34.40365581205321], [31.467615485889652, 34.40142882149354], [31.468862938702934, 34.39927111111763], [31.47020028999127, 34.39718795777125], [31.4716242707388, 34.395184456700406], [31.47313140002234, 34.39326550910763], [31.474717993492813, 34.39143581017474], [31.476380172353856, 34.38969983758094], [31.478113872816124, 34.388061840544424], [31.478474763697033, 34.3877540462166], [31.4982, 34.4076]],
+                {"bubblingMouseEvents": true, "color": "#e41a1c", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#e41a1c", "fillOpacity": 0.3, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "noClip": false, "opacity": 1.0, "smoothFactor": 1.0, "stroke": true, "weight": 2}
+            ).addTo(map_631dc89fac3aa161d1f2f1ae4ab61cfd);
+        
+    
+            polygon_45cf3560b0d64340dc3c869c721b6c0c.bindTooltip(
+                `<div>
+                     Al-Quds Hospital (50.85 km²)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var polygon_f01bf7631f9c74411520a7ee0d6f7aeb = L.polygon(
+                [[31.312959226722832, 34.2791156427363], [31.332599560840833, 34.2421182620732], [31.333157621409388, 34.24189237185505], [31.335298509747116, 34.24116181597947], [31.337467785640044, 34.240555472076224], [31.339660142253134, 34.24007483206578], [31.341870215922437, 34.239721080619596], [31.3430181316535, 34.239604352023996], [31.3587, 34.2588], [31.391893302786965, 34.295122957049735], [31.391765167041925, 34.29713113447234], [31.391489821897334, 34.29971181440372], [31.39110528382424, 34.30227344343595], [31.390612495160255, 34.30480974426264], [31.39001266350213, 34.307314501908195], [31.38930725873413, 34.309781579017425], [31.388498009411563, 34.31220493095118], [31.387586898507877, 34.31457862064997], [31.386576158536535, 34.31689683322873], [31.38546826605941, 34.31915389026623], [31.384265935595803, 34.32134426375371], [31.382972112946895, 34.3234625896679], [31.381589967952632, 34.32550368113499], [31.38012288669892, 34.327462541152805], [31.378574463194546, 34.32933437483986], [31.376948490538677, 34.33111460118103], [31.375248951600767, 34.3327988642411], [31.373480009236257, 34.33438304381867], [31.371645996062057, 34.3358632655143], [31.369751403817563, 34.337235910188674], [31.36780087233734, 34.338497622787465], [31.365799178162938, 34.33964532051212], [31.363751222821918, 34.340676200316445], [31.36166202080324, 34.34158774571158], [31.35953668725861, 34.34237773286286], [31.35738042546021, 34.343044235964534], [31.355198514045664, 34.343585631879705], [31.352996294081795, 34.34400060403488], [31.350779155978884, 34.34428814556042], [31.34855252628775, 34.34444756166985], [31.346321854411826, 34.344478471273284], [31.344092599267093, 34.34438080782161], [31.342644464920088, 34.34423355076781], [31.312959226722832, 34.2791156427363]],
+                {"bubblingMouseEvents": true, "color": "#377eb8", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#377eb8", "fillOpacity": 0.3, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "noClip": false, "opacity": 1.0, "smoothFactor": 1.0, "stroke": true, "weight": 2}
+            ).addTo(map_631dc89fac3aa161d1f2f1ae4ab61cfd);
+        
+    
+            polygon_f01bf7631f9c74411520a7ee0d6f7aeb.bindTooltip(
+                `<div>
+                     Nasser Hospital (52.60 km²)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var polygon_b2bc1986558f318b159c0816279c562c = L.polygon(
+                [[31.342740920131536, 34.34444513612032], [31.34175217410583, 34.346458517860555], [31.340549836268025, 34.34864787853674], [31.339256005654644, 34.350765225119694], [31.337873852118882, 34.35280537313868], [31.33640676176107, 34.35476332790487], [31.334858328605712, 34.35663429675474], [31.33323234576898, 34.35841370079027], [31.331532796138628, 34.36009718608732], [31.329763842589724, 34.36168063434459], [31.327929817760143, 34.363160172947154], [31.326035213411593, 34.36453218442037], [31.324084669402357, 34.36579331525066], [31.322082962298985, 34.36694048405267], [31.32003499365545, 34.36797088906247], [31.319001642126462, 34.36842154302461], [31.303, 34.3686], [31.2856, 34.3575], [31.258091676980825, 34.320405443201416], [31.258091676980825, 34.31795672149669], [31.258201948934442, 34.31536299748371], [31.258422223365873, 34.31277878473096], [31.258751961979225, 34.31021039836147], [31.25919035896857, 34.3076641149872], [31.25973634297886, 34.30514615743357], [31.26038857971342, 34.302662679592785], [31.26114547518139, 34.30021975144198], [31.262005179577688, 34.29782334426233], [31.262965591785864, 34.295479316094394], [31.263864769455814, 34.29353796742481], [31.312959226722832, 34.2791156427363], [31.342740920131536, 34.34444513612032]],
+                {"bubblingMouseEvents": true, "color": "#4daf4a", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#4daf4a", "fillOpacity": 0.3, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "noClip": false, "opacity": 1.0, "smoothFactor": 1.0, "stroke": true, "weight": 2}
+            ).addTo(map_631dc89fac3aa161d1f2f1ae4ab61cfd);
+        
+    
+            polygon_b2bc1986558f318b159c0816279c562c.bindTooltip(
+                `<div>
+                     European Hospital (52.61 km²)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var polygon_87a2c3d7e34760c969cc5bab5680d836 = L.polygon(
+                [[31.263987184818813, 34.29350200584768], [31.262426535609507, 34.29230722201425], [31.26062548695732, 34.29077475115027], [31.258891723202154, 34.28914052821751], [31.2572294834062, 34.28740855430866], [31.255642831540637, 34.28558306884566], [31.25413564657767, 34.28366853919561], [31.252711613035444, 34.28166964973757], [31.251374211998666, 34.27959129040703], [31.25012671263656, 34.277438544746005], [31.24897216423855, 34.275216677487784], [31.247913388786742, 34.27293112170649], [31.246952974083207, 34.27058746556269], [31.24609326744836, 34.268191438676816], [31.245336370005745, 34.26574889816356], [31.24468413156676, 34.2632658143607], [31.244147630925312, 34.26079199102246], [31.330287869765844, 34.230574414254264], [31.330539180437267, 34.23132650710094], [31.331244590938606, 34.23379205031482], [31.33184442746252, 34.23629525051393], [31.33233722011743, 34.23882997417725], [31.332721761300686, 34.24139001021277], [31.33276603161755, 34.24180467358441], [31.312959226722832, 34.2791156427363], [31.263987184818813, 34.29350200584768]],
+                {"bubblingMouseEvents": true, "color": "#984ea3", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#984ea3", "fillOpacity": 0.3, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "noClip": false, "opacity": 1.0, "smoothFactor": 1.0, "stroke": true, "weight": 2}
+            ).addTo(map_631dc89fac3aa161d1f2f1ae4ab61cfd);
+        
+    
+            polygon_87a2c3d7e34760c969cc5bab5680d836.bindTooltip(
+                `<div>
+                     Kuwait Hospital (31.92 km²)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+</script>
+</html>
