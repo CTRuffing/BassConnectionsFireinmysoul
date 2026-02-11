@@ -64,7 +64,11 @@ HOSPITAL_NAME_MAPPING = {
     "Al Quds": ["Al Quds", "Al-Quds", "Al Quds Hospital", "Al-Quds Hospital"],
     "Kuwait": ["Kuwait", "Kuwait Hospital", "Kuwait Hosp"]
 }
-TARGET_HOSPITALS = list(HOSPITAL_NAME_MAPPING.keys())
+TARGET_HOSPITALS = [
+    "Al Shifa",
+    "EGH",
+    "Al Nasser",
+]
 
 # colors for map legend
 HOSPITAL_COLORS = {
@@ -569,6 +573,36 @@ def main():
         print(f"  '{hosp_name}' -> {match_hospital_name(hosp_name)}")
 
     hospital_intervals = build_hospital_open_intervals(hospitals_df, schedule_meta)
+
+    # OVERRIDE: force hospital timelines to the user-specified ranges
+    # Ignore the open/close spreadsheet and apply explicit intervals for only the
+    # three target hospitals (Al Shifa, EGH, Al Nasser). We store intervals
+    # keyed by the Excel 'Hospital' name so downstream functions that look up
+    # hospital status by that name will find these entries.
+    explicit_ranges = {
+        "Al Shifa": (datetime(2023, 10, 7), datetime(2023, 11, 3)),
+        "EGH": (datetime(2023, 12, 11), datetime(2024, 4, 28)),
+        "Al Nasser": (datetime(2024, 11, 11), datetime(2025, 2, 2)),
+    }
+
+    # Build override mapping for hospital_intervals using the Excel hospital names
+    # that map to the canonical targets.
+    override_intervals = {}
+    for hosp_name in hospitals_df['Hospital'].values:
+        canonical = match_hospital_name(hosp_name)
+        if canonical in TARGET_HOSPITALS:
+            # ensure closed before start, open at start, closed after end
+            start, end = explicit_ranges.get(canonical, (None, None))
+            if start is not None and end is not None:
+                override_intervals[hosp_name] = [
+                    (datetime(1900, 1, 1), "Closed"),
+                    (start, "Open"),
+                    (end + timedelta(days=1), "Closed"),
+                ]
+
+    # Replace hospital_intervals entries for matching hospitals
+    for k, v in override_intervals.items():
+        hospital_intervals[k] = v
 
     # determine date range (kept for diagnostics / compatibility)
     all_dates = [d for (_, _, d) in schedule_meta if d is not None]

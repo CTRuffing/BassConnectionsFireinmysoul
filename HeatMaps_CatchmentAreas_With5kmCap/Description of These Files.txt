@@ -1,0 +1,3 @@
+Monona used Cooper's first mapping.ipnyb to see if she could calculate the catchment areas for the hospitals (in excel?). Added a 5km cap to remove ACLED attacks in the ocean and add reaslistic consideration to assigning areas/attacks to hospitals. Adjusted heat maps accordingly but not the catchment areas. This is an outdated version.
+
+The original maps made by cooper are called gaza_catchment....
