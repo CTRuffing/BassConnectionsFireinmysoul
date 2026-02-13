@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css"/>
+    
+            <meta name="viewport" content="width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            <style>
+                #map_ea4ee3f0dd9e035762bbd06de7e3d13e {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+
+            <style>html, body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            </style>
+
+            <style>#map {
+                position:absolute;
+                top:0;
+                bottom:0;
+                right:0;
+                left:0;
+                }
+            </style>
+
+            <script>
+                L_NO_TOUCH = false;
+                L_DISABLE_3D = false;
+            </script>
+
+        
+    <script src="https://cdn.jsdelivr.net/gh/python-visualization/folium@main/folium/templates/leaflet_heat.min.js"></script>
+</head>
+<body>
+    
+    
+    <div style="position: fixed; top: 10px; left: 50px; width: 400px; padding: 10px;
+                background: white; border: 2px solid grey; z-index: 9999; font-size: 14px;">
+    <b>Hospital Catchment Areas</b><br>
+    Period: 2023-11-23 to 2023-11-27<br>
+    Open Hospitals: 3<br>
+    Total Attacks in Period: 19
+    </div>
+    
+            <div class="folium-map" id="map_ea4ee3f0dd9e035762bbd06de7e3d13e" ></div>
+        
+</body>
+<script>
+    
+    
+            var map_ea4ee3f0dd9e035762bbd06de7e3d13e = L.map(
+                "map_ea4ee3f0dd9e035762bbd06de7e3d13e",
+                {
+                    center: [31.31272875, 34.28678405333333],
+                    crs: L.CRS.EPSG3857,
+                    ...{
+  "zoom": 11,
+  "zoomControl": true,
+  "preferCanvas": false,
+}
+
+                }
+            );
+
+            
+
+        
+    
+            var tile_layer_9a511e9857bf924bcb451992df91f11c = L.tileLayer(
+                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                {
+  "minZoom": 0,
+  "maxZoom": 19,
+  "maxNativeZoom": 19,
+  "noWrap": false,
+  "attribution": "\u0026copy; \u003ca href=\"https://www.openstreetmap.org/copyright\"\u003eOpenStreetMap\u003c/a\u003e contributors",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            tile_layer_9a511e9857bf924bcb451992df91f11c.addTo(map_ea4ee3f0dd9e035762bbd06de7e3d13e);
+        
+    
+            var heat_map_f48d96019ac70a9885229c19f5a03b4f = L.heatLayer(
+                [[31.2842, 34.2482, 4.0], [31.2855, 34.2714, 1.0], [31.287, 34.2595, 1.0], [31.3046, 34.3014, 1.0], [31.3069, 34.3572, 1.0], [31.323, 34.2761, 1.0], [31.336, 34.3172, 1.0], [31.3398, 34.3116, 1.0], [31.3424, 34.325, 4.0], [31.3474, 34.2226, 2.0], [31.3484, 34.2961, 1.0], [31.3502, 34.3081, 1.0], [31.3691, 34.2734, 2.0], [31.3739, 34.3409, 1.0], [31.4178, 34.3503, 1.0], [31.4204, 34.339, 2.0], [31.4214, 34.3865, 4.0], [31.4249, 34.34, 2.0], [31.4284, 34.366, 1.0], [31.4394, 34.4031, 1.0], [31.4486, 34.3925, 2.0], [31.4557, 34.4372, 1.0], [31.4591, 34.3923, 4.0], [31.4675, 34.4097, 2.0], [31.4716, 34.4013, 1.0], [31.4864, 34.4738, 1.0], [31.4964, 34.4522, 1.0], [31.4988, 34.4699, 2.0], [31.5041, 34.435, 2.0], [31.5045, 34.4743, 7.0], [31.5086, 34.4493, 1.0], [31.5134, 34.4751, 1.0], [31.5172, 34.4642, 1.0], [31.5245, 34.4326, 2.0], [31.5272, 34.4835, 6.0], [31.534, 34.4574, 1.0], [31.5349, 34.4667, 2.0], [31.536, 34.4907, 3.0], [31.5367, 34.5035, 1.0], [31.5392, 34.5117, 2.0], [31.5405, 34.5402, 1.0], [31.5433, 34.4998, 2.0], [31.5463, 34.5332, 2.0], [31.5541, 34.5016, 4.0], [31.5887, 34.4959, 2.0]],
+                {
+  "minOpacity": 0.3,
+  "maxZoom": 13,
+  "radius": 15,
+  "blur": 20,
+  "gradient": {
+  0.4: "blue",
+  0.6: "lime",
+  0.7: "yellow",
+  0.8: "orange",
+  1.0: "red",
+},
+}
+            );
+        
+    
+            heat_map_f48d96019ac70a9885229c19f5a03b4f.addTo(map_ea4ee3f0dd9e035762bbd06de7e3d13e);
+        
+    
+            var circle_marker_c0b2ea313ad50e625f09b6d1e15803f7 = L.circleMarker(
+                [31.34689036, 34.29193795],
+                {"bubblingMouseEvents": true, "color": "#e41a1c", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#e41a1c", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 10, "stroke": true, "weight": 2}
+            ).addTo(map_ea4ee3f0dd9e035762bbd06de7e3d13e);
+        
+    
+        var popup_cc9d2fad8e2b48b2b39afbad27416678 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_fdeaf7b7d08b35257151eeab68e79e69 = $(`<div id="html_fdeaf7b7d08b35257151eeab68e79e69" style="width: 100.0%; height: 100.0%;"><b>Nasser Hospital</b></div>`)[0];
+                popup_cc9d2fad8e2b48b2b39afbad27416678.setContent(html_fdeaf7b7d08b35257151eeab68e79e69);
+            
+        
+
+        circle_marker_c0b2ea313ad50e625f09b6d1e15803f7.bindPopup(popup_cc9d2fad8e2b48b2b39afbad27416678)
+        ;
+
+        
+    
+    
+            var circle_marker_036f7ca144b38ff38927650d92ee9699 = L.circleMarker(
+                [31.303174, 34.31925517],
+                {"bubblingMouseEvents": true, "color": "#377eb8", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#377eb8", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 10, "stroke": true, "weight": 2}
+            ).addTo(map_ea4ee3f0dd9e035762bbd06de7e3d13e);
+        
+    
+        var popup_3c7842f8a0692702deabd97c4315e533 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_a300cc6facab3c347e92b119588020f1 = $(`<div id="html_a300cc6facab3c347e92b119588020f1" style="width: 100.0%; height: 100.0%;"><b>European Hospital</b></div>`)[0];
+                popup_3c7842f8a0692702deabd97c4315e533.setContent(html_a300cc6facab3c347e92b119588020f1);
+            
+        
+
+        circle_marker_036f7ca144b38ff38927650d92ee9699.bindPopup(popup_3c7842f8a0692702deabd97c4315e533)
+        ;
+
+        
+    
+    
+            var circle_marker_354b6cc56cd48618ec0d11b3f54082fa = L.circleMarker(
+                [31.28812189, 34.24915904],
+                {"bubblingMouseEvents": true, "color": "#4daf4a", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#4daf4a", "fillOpacity": 0.9, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 10, "stroke": true, "weight": 2}
+            ).addTo(map_ea4ee3f0dd9e035762bbd06de7e3d13e);
+        
+    
+        var popup_61fa9138a9b6028da180b28c274b43da = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_b468f991cb7b638347b6880fb7e0afd8 = $(`<div id="html_b468f991cb7b638347b6880fb7e0afd8" style="width: 100.0%; height: 100.0%;"><b>Kuwait Hospital</b></div>`)[0];
+                popup_61fa9138a9b6028da180b28c274b43da.setContent(html_b468f991cb7b638347b6880fb7e0afd8);
+            
+        
+
+        circle_marker_354b6cc56cd48618ec0d11b3f54082fa.bindPopup(popup_61fa9138a9b6028da180b28c274b43da)
+        ;
+
+        
+    
+    
+            var polygon_c2f55bcfb612e86bb1b5315b0b2a3c3e = L.polygon(
+                [[31.332606646323256, 34.24211539403116], [31.333157621409388, 34.24189237185505], [31.335298509747116, 34.24116181597947], [31.337467785640044, 34.240555472076224], [31.339660142253134, 34.24007483206578], [31.341870215922437, 34.239721080619596], [31.3430181316535, 34.239604352023996], [31.3587, 34.2588], [31.391893302786965, 34.295122957049735], [31.391765167041925, 34.29713113447234], [31.391489821897334, 34.29971181440372], [31.39110528382424, 34.30227344343595], [31.390612495160255, 34.30480974426264], [31.39001266350213, 34.307314501908195], [31.38930725873413, 34.309781579017425], [31.388498009411563, 34.31220493095118], [31.387586898507877, 34.31457862064997], [31.386576158536535, 34.31689683322873], [31.38546826605941, 34.31915389026623], [31.384265935595803, 34.32134426375371], [31.382972112946895, 34.3234625896679], [31.381589967952632, 34.32550368113499], [31.38012288669892, 34.327462541152805], [31.378574463194546, 34.32933437483986], [31.376948490538677, 34.33111460118103], [31.375248951600767, 34.3327988642411], [31.373480009236257, 34.33438304381867], [31.371645996062057, 34.3358632655143], [31.369751403817563, 34.337235910188674], [31.36780087233734, 34.338497622787465], [31.365799178162938, 34.33964532051212], [31.363751222821918, 34.340676200316445], [31.36166202080324, 34.34158774571158], [31.35953668725861, 34.34237773286286], [31.35738042546021, 34.343044235964534], [31.355198514045664, 34.343585631879705], [31.352996294081795, 34.34400060403488], [31.350779155978884, 34.34428814556042], [31.34855252628775, 34.34444756166985], [31.346321854411826, 34.344478471273284], [31.344092599267093, 34.34438080782161], [31.342625567335432, 34.344231629121076], [31.312959226722832, 34.2791156427363], [31.332606646323256, 34.24211539403116]],
+                {"bubblingMouseEvents": true, "color": "#e41a1c", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#e41a1c", "fillOpacity": 0.3, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "noClip": false, "opacity": 1.0, "smoothFactor": 1.0, "stroke": true, "weight": 2}
+            ).addTo(map_ea4ee3f0dd9e035762bbd06de7e3d13e);
+        
+    
+            polygon_c2f55bcfb612e86bb1b5315b0b2a3c3e.bindTooltip(
+                `<div>
+                     Nasser Hospital<br>Area: 52.61 km²<br>Attacks: 11
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var polygon_40cf7acb5feab0ded9f08f8c6abc1531 = L.polygon(
+                [[31.34273154084431, 34.34446423514591], [31.34175217410583, 34.346458517860555], [31.340549836268025, 34.34864787853674], [31.339256005654644, 34.350765225119694], [31.337873852118882, 34.35280537313868], [31.33640676176107, 34.35476332790487], [31.334858328605712, 34.35663429675474], [31.33323234576898, 34.35841370079027], [31.331532796138628, 34.36009718608732], [31.329763842589724, 34.36168063434459], [31.327929817760143, 34.363160172947154], [31.326035213411593, 34.36453218442037], [31.324084669402357, 34.36579331525066], [31.322082962298985, 34.36694048405267], [31.32003499365545, 34.36797088906247], [31.319001642126462, 34.36842154302461], [31.303, 34.3686], [31.2856, 34.3575], [31.258091676980825, 34.320405443201416], [31.258091676980825, 34.31795672149669], [31.258201948934442, 34.31536299748371], [31.258422223365873, 34.31277878473096], [31.258751961979225, 34.31021039836147], [31.25919035896857, 34.3076641149872], [31.25973634297886, 34.30514615743357], [31.26038857971342, 34.302662679592785], [31.26114547518139, 34.30021975144198], [31.262005179577688, 34.29782334426233], [31.262965591785864, 34.295479316094394], [31.263863212330165, 34.29354132930079], [31.312959226722832, 34.2791156427363], [31.34273154084431, 34.34446423514591]],
+                {"bubblingMouseEvents": true, "color": "#377eb8", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#377eb8", "fillOpacity": 0.3, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "noClip": false, "opacity": 1.0, "smoothFactor": 1.0, "stroke": true, "weight": 2}
+            ).addTo(map_ea4ee3f0dd9e035762bbd06de7e3d13e);
+        
+    
+            polygon_40cf7acb5feab0ded9f08f8c6abc1531.bindTooltip(
+                `<div>
+                     European Hospital<br>Area: 52.60 km²<br>Attacks: 2
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var polygon_169756ebe408be5af449674358efc46e = L.polygon(
+                [[31.26398991950363, 34.293504099436156], [31.262426535609507, 34.29230722201425], [31.26062548695732, 34.29077475115027], [31.258891723202154, 34.28914052821751], [31.2572294834062, 34.28740855430866], [31.255642831540637, 34.28558306884566], [31.25413564657767, 34.28366853919561], [31.252711613035444, 34.28166964973757], [31.251374211998666, 34.27959129040703], [31.25012671263656, 34.277438544746005], [31.24897216423855, 34.275216677487784], [31.247913388786742, 34.27293112170649], [31.246952974083207, 34.27058746556269], [31.24609326744836, 34.268191438676816], [31.245336370005745, 34.26574889816356], [31.24468413156676, 34.2632658143607], [31.244147630925312, 34.26079199102246], [31.330287869765844, 34.230574414254264], [31.330539180437267, 34.23132650710094], [31.331244590938606, 34.23379205031482], [31.33184442746252, 34.23629525051393], [31.33233722011743, 34.23882997417725], [31.332721761300686, 34.24139001021277], [31.332766970672235, 34.24181346935574], [31.312959226722832, 34.2791156427363], [31.26398991950363, 34.293504099436156]],
+                {"bubblingMouseEvents": true, "color": "#4daf4a", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#4daf4a", "fillOpacity": 0.3, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "noClip": false, "opacity": 1.0, "smoothFactor": 1.0, "stroke": true, "weight": 2}
+            ).addTo(map_ea4ee3f0dd9e035762bbd06de7e3d13e);
+        
+    
+            polygon_169756ebe408be5af449674358efc46e.bindTooltip(
+                `<div>
+                     Kuwait Hospital<br>Area: 31.92 km²<br>Attacks: 6
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+</script>
+</html>
