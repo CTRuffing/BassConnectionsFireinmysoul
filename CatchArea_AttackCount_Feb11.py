@@ -96,7 +96,7 @@ def read_hospitals_open_close(path: Path) -> Tuple[pd.DataFrame, Dict[str, List[
     # Detect layout: if row 1 has date-like values in col 3, use dates-in-header layout
     dates_in_header = False
     if len(raw) >= 2 and schedule_cols:
-        header_date = _parse_date(raw.iloc[1, 3])
+        header_date = _parse_date(raw.iloc[0, 3])
         if header_date is not None:
             dates_in_header = True
     
