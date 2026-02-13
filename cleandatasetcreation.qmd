@@ -6,7 +6,6 @@ author: Cooper Ruffing
 ---
 
 ```{r}
-#| label: "load packages and data"
 
 library(tidyverse)
 library(readxl)
@@ -24,9 +23,7 @@ area_percent <- read_excel("catchment_calculation_results.xlsx")
 
 ```
 
-
 ```{r}
-#| label: "clean attacks"
 
 attacks <- attacks |>
   select(-"period_id", -"period") |>
@@ -37,7 +34,6 @@ attacks <- attacks |>
 ```
 
 ```{r}
-#| label: "clean injuries"
 
 injuries <- injuries |>
   select(-"period") |>
@@ -47,7 +43,6 @@ injuries <- injuries |>
 ```
 
 ```{r}
-#| label: "clean area_percent"
 
 area_percent <- area_percent |>
   filter(
@@ -65,9 +60,7 @@ area_percent <- area_percent |>
 
 ```
 
-
 ```{r}
-#| label: "complete join"
 
 renewed_dataset <- full_join(attacks, injuries, by = c("period_start", "period_end")) |>
   full_join(area_percent, by = c("period_start", "period_end"))
@@ -77,4 +70,3 @@ renewed_dataset[is.na(renewed_dataset)] <- 0
 write_xlsx(dataset, "aggregated_dataset.xlsx")
 
 ```
-
