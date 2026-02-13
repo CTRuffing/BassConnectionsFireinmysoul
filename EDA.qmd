@@ -1,0 +1,249 @@
+---
+title: "EDA"
+format: pdf
+editor: visual
+---
+
+```{r}
+#| label: ggplots
+
+# Single big chunk: ggplots using exact "period_start to period_end" labels on x-axis
+# Required packages: readxl, dplyr, tidyr, ggplot2, lubridate, scales, stringr
+# install.packages(c("readxl","dplyr","tidyr","ggplot2","lubridate","scales","stringr")) if needed
+
+library(readxl)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(lubridate)
+library(scales)
+library(stringr)
+
+# --- Read the file (tries working dir then /mnt/data) ---
+xlsx_candidates <- c("aggregated_dataset.xlsx", "/mnt/data/aggregated_dataset.xlsx")
+dataset_path <- NULL
+for (p in xlsx_candidates) {
+  if (file.exists(p)) { dataset_path <- p; break }
+}
+if (is.null(dataset_path)) stop("Could not find aggregated_dataset.xlsx. Place it in the working directory or /mnt/data/")
+
+df <- read_xlsx(dataset_path)
+
+# --- Normalize column names slightly (trim but keep case for readability) ---
+orig_names <- names(df)
+clean_names <- stringr::str_trim(orig_names)
+clean_names <- str_replace_all(clean_names, "[\\s]+", " ")
+names(df) <- clean_names
+lc_names <- tolower(clean_names)
+
+# --- Find biweekly start/end columns (fuzzy) ---
+possible_start_names <- c("period_start", "period start", "start_date", "start", "periodstart")
+possible_end_names   <- c("period_end", "period end", "end_date", "end", "periodend")
+
+find_first_match <- function(cands, lc_names, avail_names) {
+  for (c in cands) {
+    i <- which(lc_names == tolower(c))
+    if (length(i) > 0) return(avail_names[i[1]])
+  }
+  for (c in cands) {
+    i <- which(str_detect(lc_names, str_replace_all(tolower(c), "[^a-z0-9]+", ".*")))
+    if (length(i) > 0) return(avail_names[i[1]])
+  }
+  return(NA_character_)
+}
+start_col <- find_first_match(possible_start_names, lc_names, names(df))
+end_col   <- find_first_match(possible_end_names, lc_names, names(df))
+
+if (is.na(start_col) | is.na(end_col)) stop("Could not detect biweekly period start/end columns. Look for 'period_start'/'period_end' or similar names.")
+
+# --- Convert start/end to Date (handle POSIX, Date, or character with timezone) ---
+to_date_safe <- function(x) {
+  if (inherits(x, "Date")) return(x)
+  if (inherits(x, "POSIXt")) return(as_date(x))
+  # remove trailing " UTC" if present then parse
+  x_chr <- as.character(x)
+  x_chr <- str_replace(x_chr, "\\s*UTC\\s*$", "")
+  parsed <- suppressWarnings(ymd_hms(x_chr, quiet = TRUE))
+  if (all(is.na(parsed))) parsed2 <- suppressWarnings(ymd(x_chr, quiet = TRUE)) else parsed2 <- parsed
+  as_date(parsed2)
+}
+
+df <- df %>%
+  mutate(
+    !!start_col := to_date_safe(.data[[start_col]]),
+    !!end_col   := to_date_safe(.data[[end_col]])
+  )
+
+# --- Create period label "YYYY-MM-DD to YYYY-MM-DD" and ordered factor by period start ---
+df <- df %>%
+  arrange(.data[[start_col]]) %>%
+  mutate(
+    period_start_date = as_date(.data[[start_col]]),
+    period_end_date   = as_date(.data[[end_col]]),
+    period_label = paste0(format(period_start_date, "%Y-%m-%d"), " to ", format(period_end_date, "%Y-%m-%d"))
+  )
+
+# Keep an ordered factor so x-axis respects chronological order
+df$period_label <- factor(df$period_label, levels = unique(df$period_label))
+
+# --- Define user variable groups (attempt fuzzy matching to actual columns) ---
+attack_vars_user <- c("Air/drone strike","Ground Attacks","Shelling/artillery/missile attack","Civil Unrest","Other")
+injury_vars_user <- c("Burn","CMF","Limb","NTD","Soft Tissue","Wound Care")
+rest_vars_user   <- c("avg_distance_km","Catchment Area (km²)","Attacks in Catchment","Total Attacks in Segment","Percentage of Total Attacks","percent_total_area")
+
+fuzzy_match <- function(user_vec, available_names) {
+  avail_lc <- tolower(available_names)
+  res <- character(length(user_vec))
+  for (i in seq_along(user_vec)) {
+    u <- tolower(user_vec[i])
+    exact_idx <- which(avail_lc == u)
+    if (length(exact_idx) > 0) { res[i] <- available_names[exact_idx[1]]; next }
+    contains_idx <- which(str_detect(avail_lc, fixed(u)))
+    if (length(contains_idx) > 0) { res[i] <- available_names[contains_idx[1]]; next }
+    u_norm <- str_replace_all(u, "[^a-z0-9]+", "")
+    norm_idx <- which(str_replace_all(avail_lc, "[^a-z0-9]+", "") == u_norm)
+    if (length(norm_idx) > 0) { res[i] <- available_names[norm_idx[1]]; next }
+    partial_idx <- which(str_detect(avail_lc, str_replace_all(u, "[^a-z0-9]+", ".*")))
+    if (length(partial_idx) > 0) { res[i] <- available_names[partial_idx[1]]; next }
+    res[i] <- NA_character_
+  }
+  res
+}
+
+attack_cols <- fuzzy_match(attack_vars_user, names(df))
+attack_cols <- attack_cols[!is.na(attack_cols)]
+injury_cols <- fuzzy_match(injury_vars_user, names(df))
+injury_cols <- injury_cols[!is.na(injury_cols)]
+rest_cols   <- fuzzy_match(rest_vars_user, names(df))
+rest_cols   <- rest_cols[!is.na(rest_cols)]
+
+# add any columns containing "percent" or "percentage" to rest if not already included
+pct_cols <- names(df)[str_detect(tolower(names(df)), "percent|percentage")]
+rest_cols <- unique(c(rest_cols, pct_cols))
+
+# Diagnostic print
+cat("Using file:", dataset_path, "\n")
+cat("Period start col:", start_col, "end col:", end_col, "\n")
+cat("Periods (first/last):", as.character(first(df$period_label)), " ... ", as.character(last(df$period_label)), "\n")
+cat("Attack columns found:", if(length(attack_cols)) paste(attack_cols, collapse=", ") else "NONE", "\n")
+cat("Injury columns found:", if(length(injury_cols)) paste(injury_cols, collapse=", ") else "NONE", "\n")
+cat("Rest columns found:", if(length(rest_cols)) paste(rest_cols, collapse=", ") else "NONE", "\n\n")
+
+# --- helper numeric coercion ---
+to_num <- function(x) suppressWarnings(as.numeric(x))
+
+# --- 1) Attack types plot (x = period_label categorical) ---
+if (length(attack_cols) > 0) {
+  attacks_long <- df %>%
+    select(period_label, all_of(attack_cols)) %>%
+    pivot_longer(-period_label, names_to = "attack_type", values_to = "value") %>%
+    mutate(value = to_num(value),
+           attack_type = factor(attack_type, levels = unique(attack_type)))
+  
+  p_attacks <- ggplot(attacks_long, aes(x=period_label, y=value, group=attack_type, color=attack_type)) +
+    geom_line(size=1) +
+    geom_point(size=2) +
+    labs(title="Attack types over biweekly periods", x="Biweekly period", y="Count", color="Attack Type") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1), plot.title = element_text(hjust=0.5))
+  print(p_attacks)
+} else {
+  plot.new(); text(0.5,0.5,"No attack columns found to plot")
+}
+
+# --- 2) Injury types plot ---
+if (length(injury_cols) > 0) {
+  inj_long <- df %>%
+    select(period_label, all_of(injury_cols)) %>%
+    pivot_longer(-period_label, names_to = "injury_type", values_to = "value") %>%
+    mutate(value = to_num(value),
+           injury_type = factor(injury_type, levels = unique(injury_type)))
+  
+  p_injuries <- ggplot(inj_long, aes(x=period_label, y=value, group=injury_type, color=injury_type)) +
+    geom_line(size=1) +
+    geom_point(size=2) +
+    labs(title="Injury types over biweekly periods", x="Biweekly period", y="Count", color="Injury Type") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1), plot.title = element_text(hjust=0.5))
+  print(p_injuries)
+} else {
+  plot.new(); text(0.5,0.5,"No injury columns found to plot")
+}
+
+# --- 3) Rest variables combined (min-max scaled) with categorical x ---
+if (length(rest_cols) > 0) {
+  rest_long <- df %>%
+    select(period_label, all_of(rest_cols)) %>%
+    pivot_longer(-period_label, names_to = "var", values_to = "value") %>%
+    mutate(value_num = to_num(value)) %>%
+    group_by(var) %>%
+    mutate(min_v = min(value_num, na.rm=TRUE),
+           max_v = max(value_num, na.rm=TRUE),
+           scaled = ifelse(is.finite(min_v) & is.finite(max_v) & (max_v - min_v) > 0,
+                           (value_num - min_v) / (max_v - min_v),
+                           NA_real_)) %>%
+    ungroup()
+  
+  p_rest_scaled <- ggplot(rest_long, aes(x=period_label, y=scaled, group=var, color=var)) +
+    geom_line(size=1) +
+    geom_point(size=1.6) +
+    labs(title="Other variables (min-max scaled) across biweekly periods", x="Biweekly period", y="Scaled (0-1)", color="Variable") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1), plot.title = element_text(hjust=0.5))
+  print(p_rest_scaled)
+  
+  # small multiples: raw values
+  rest_long_raw <- rest_long %>% mutate(value_num = as.numeric(value_num))
+  # For better layout, print facets in a taller plot; printing here uses current fig.height - you can split into another chunk if you want different size.
+  p_rest_facets <- ggplot(rest_long_raw, aes(x=period_label, y=value_num, group=1)) +
+    geom_line() + geom_point(size=1) +
+    facet_wrap(~var, scales="free_y", ncol=2) +
+    labs(title="Other variables (raw values) — one panel per variable", x="Biweekly period", y="Value") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1), plot.title = element_text(hjust=0.5))
+  print(p_rest_facets)
+  
+} else {
+  plot.new(); text(0.5,0.5,"No 'rest' variables found to plot")
+}
+
+# --- 4) Big plot: all variables together (min-max scaled) on categorical x-axis ---
+all_plot_cols <- unique(c(attack_cols, injury_cols, rest_cols))
+all_plot_cols <- all_plot_cols[!is.na(all_plot_cols)]
+if (length(all_plot_cols) > 0) {
+  all_long <- df %>%
+    select(period_label, all_of(all_plot_cols)) %>%
+    pivot_longer(-period_label, names_to = "var", values_to = "value") %>%
+    mutate(value_num = to_num(value)) %>%
+    group_by(var) %>%
+    mutate(min_v = min(value_num, na.rm=TRUE),
+           max_v = max(value_num, na.rm=TRUE),
+           scaled = ifelse(is.finite(min_v) & is.finite(max_v) & (max_v - min_v) > 0,
+                           (value_num - min_v) / (max_v - min_v),
+                           NA_real_)) %>%
+    ungroup()
+  
+  p_all <- ggplot(all_long, aes(x=period_label, y=scaled, group=var, color=var)) +
+    geom_line(size=0.9) +
+    geom_point(size=1.2) +
+    labs(title="All variables together (min-max scaled per variable) across biweekly periods", x="Biweekly period", y="Scaled (0-1)", color="Variable") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1), plot.title = element_text(hjust=0.5))
+  print(p_all)
+} else {
+  plot.new(); text(0.5,0.5,"No variables found to include in the 'all variables' plot")
+}
+
+# --- End of chunk ---
+# Notes:
+# - Because x-axis labels are full range strings, they can be long; rotate angle or reduce label frequency if crowded.
+# - To show only every Nth label, you can set:
+#     p + scale_x_discrete(breaks = levels(df$period_label)[seq(1, nlevels(df$period_label), by = 2)])
+#   (change 'by' to 2,3,...)
+# - If you instead want even spacing but to see the actual date ranges as hover text in interactive plots, ask and I can provide an interactive (plotly) version.
+
+
+```
+
+
+
