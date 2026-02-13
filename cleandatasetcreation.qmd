@@ -67,6 +67,6 @@ renewed_dataset <- full_join(attacks, injuries, by = c("period_start", "period_e
 
 renewed_dataset[is.na(renewed_dataset)] <- 0
 
-write_xlsx(dataset, "aggregated_dataset.xlsx")
+write_xlsx(renewed_dataset, "aggregated_dataset.xlsx")
 
 ```
