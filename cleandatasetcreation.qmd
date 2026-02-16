@@ -8,6 +8,7 @@ author: Cooper Ruffing
 ```{r}
 #| label: "load packages and data"
 
+
 library(tidyverse)
 library(readxl)
 library(dplyr)
@@ -38,7 +39,6 @@ attacks <- attacks |>
 
 ```{r}
 #| label: "clean injuries"
-
 injuries <- injuries |>
   select(-"period") |>
   mutate(period_start = as.POSIXct(period_start, tz = "UTC")) |>
@@ -65,16 +65,16 @@ area_percent <- area_percent |>
 
 ```
 
+<<<<<<< HEAD
 
 ```{r}
 #| label: "complete join"
-
+#| 
 renewed_dataset <- full_join(attacks, injuries, by = c("period_start", "period_end")) |>
   full_join(area_percent, by = c("period_start", "period_end"))
 
 renewed_dataset[is.na(renewed_dataset)] <- 0
 
-write_xlsx(dataset, "aggregated_dataset.xlsx")
+write_xlsx(renewed_dataset, "aggregated_dataset.xlsx")
 
 ```
-

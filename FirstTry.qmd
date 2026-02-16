@@ -15,7 +15,72 @@ attacks <- read_excel("attacks.xlsx")
 
 injuries <- read_excel("injuries.xlsx")
 
+catchment_area <- read_excel("catchment_areas_over_time.xlsx", sheet = "Catchment areas over time")
+
+catchment_percent <- read_excel("catchment_areas_over_time.xlsx", sheet = "Catchment percentages over time")
+
 ```
+
+```{r}
+catchment_area <- as.data.frame(t(catchment_area))
+
+colnames(catchment_area) <- catchment_area[1,]
+catchment_area <- catchment_area[-1, ]
+catchment_area <- catchment_area[rownames(catchment_area) != "Average",]
+
+library(dplyr)
+library(lubridate)
+library(tibble)
+
+# assume your table is in 'catchment_area' with rownames like "2023-10-07 to 2023-10-21"
+df2 <- catchment_area %>% rownames_to_column(var = "period.x")
+
+
+df_selected <- df2 %>%
+  mutate(
+    period_start = as.Date(sub("^(\\d{4}-\\d{2}-\\d{2}).*$", "\\1", period.x))
+  ) %>%
+  mutate(
+    encatch_area = case_when(
+      period_start >= as.Date("2023-10-07") & period_start <= as.Date("2023-11-03") ~
+        as.numeric(`Al Shifa Medical Hospital`),
+      period_start >= as.Date("2023-12-11") & period_start <= as.Date("2024-04-28") ~
+        as.numeric(`European Hospital`),
+      period_start >= as.Date("2024-11-11") & period_start <= as.Date("2025-02-02") ~
+        as.numeric(`Nasser Hospital`),
+      TRUE ~ NA_real_
+    )
+  ) %>%
+  select(period.x, encatch_area)
+
+
+catchment_percent <- as.data.frame(t(catchment_percent))
+
+colnames(catchment_percent) <- catchment_percent[1,]
+catchment_percent <- catchment_percent[-1, ]
+catchment_percent <- catchment_percent[rownames(catchment_percent) != "Average",]
+
+df3 <- catchment_percent %>% rownames_to_column(var = "period.x")
+
+df_selected_2 <- df3 %>%
+  mutate(
+    period_start = as.Date(sub("^(\\d{4}-\\d{2}-\\d{2}).*$", "\\1", period.x))
+  ) %>%
+  mutate(
+    encatch_percent = case_when(
+      period_start >= as.Date("2023-10-07") & period_start <= as.Date("2023-11-03") ~
+        as.numeric(`Al Shifa Medical Hospital`),
+      period_start >= as.Date("2023-12-11") & period_start <= as.Date("2024-04-28") ~
+        as.numeric(`European Hospital`),
+      period_start >= as.Date("2024-11-11") & period_start <= as.Date("2025-02-02") ~
+        as.numeric(`Nasser Hospital`),
+      TRUE ~ NA_real_
+    )
+  ) %>%
+  select(period.x, encatch_percent)
+
+```
+
 
 ```{r}
 attacks <- attacks |>
@@ -28,7 +93,10 @@ injuries <- injuries |>
   arrange(desc(period_start))
 
 dataset <- full_join(injuries, attacks, by = "period_start")
-
+dataset <- dataset |>
+  drop_na()
+dataset <- full_join(dataset, df_selected, by = "period.x")
+dataset <- full_join(dataset, df_selected_2, by = "period.x")
 dataset <- dataset |>
   drop_na()
 
@@ -91,8 +159,6 @@ sapply(models_poisson, check_dispersion)
 # If dispersion >> 1 (rule of thumb: > 1.5 or 2), use negative binomial.
 
 ```
-
-
 
 LALALAA
 
@@ -314,4 +380,3 @@ if (!is.null(mod_nb)) {
 message("Done. Summary: Poisson -> check dispersion; if >1.5 use NB or mixed NB. Try lagged attacks and lagged injuries to capture temporal autocorrelation. Use CLR or Dirichlet-multinomial for compositional/proportion analysis across injury categories.")
 
 ```
-
