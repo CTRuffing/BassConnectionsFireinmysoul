@@ -262,6 +262,7 @@ pmsg("\nSaved diagnostics in variables: diag_results, single_map, scaled_fits, r
 
 summary(scaled_fits[["Burn"]])
 summary(scaled_fits[["Limb"]])
+summary(scaled_fits[["Soft Tissue"]])
 
 ```
 
