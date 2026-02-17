@@ -25,7 +25,6 @@ area_percent <- read_excel("catchment_calculation_results.xlsx")
 
 ```
 
-
 ```{r}
 #| label: "clean attacks"
 
@@ -65,7 +64,7 @@ area_percent <- area_percent |>
 
 ```
 
-<<<<<<< HEAD
+\<\<\<\<\<\<\< HEAD
 
 ```{r}
 #| label: "complete join"

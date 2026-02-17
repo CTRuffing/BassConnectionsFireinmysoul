@@ -17,6 +17,7 @@ library(AER)
 library(car)
 library(sandwich)
 library(lmtest)
+library(knitr)
 
 totaldata <- read_excel("aggregated_dataset.xlsx")
 
@@ -260,9 +261,11 @@ pmsg("\nSaved diagnostics in variables: diag_results, single_map, scaled_fits, r
 
 ```{r}
 
-summary(scaled_fits[["Burn"]])
-summary(scaled_fits[["Limb"]])
-summary(scaled_fits[["Soft Tissue"]])
+kable(summary(scaled_fits[["Burn"]])$coefficients)
+#kable(summary(scaled_fits[["CMF"]])$coefficients)
+kable(summary(scaled_fits[["Limb"]])$coefficients)
+#kable(summary(scaled_fits[["NTD"]])$coefficients)
+kable(summary(scaled_fits[["Soft Tissue"]])$coefficients)
+kable(summary(scaled_fits[["Wound Care"]])$coefficients)
 
 ```
-
