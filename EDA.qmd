@@ -57,7 +57,7 @@ totaldata <- totaldata |>
 
 
 ```{r}
-#| label: initial-chat-plots
+#| label: all-variables-vs-time
 
 # Single robust chunk: uses exact "period_start to period_end" labels on x-axis.
 # All tidy functions are namespace-qualified to avoid masking issues (e.g. MASS::select).
@@ -295,7 +295,7 @@ if (length(all_plot_cols) > 0) {
 ```
 
 ```{r}
-#| label: injury-distributions-by-hospital
+#| label: injury-distributions-by-hospital-by-counts
 
 #totaldata |>
   #filter(`Hospital` == "Al Shifa Medical Hospital") |>
