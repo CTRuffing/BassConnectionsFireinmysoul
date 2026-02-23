@@ -23,6 +23,8 @@ injuries <- read_excel("injuries.xlsx")
 
 area_percent <- read_excel("catchment_calculation_results.xlsx")
 
+gov_percent <- read_excel("Governate Distributions/catchment_summary.xlsx")
+
 ```
 
 ```{r}
@@ -64,11 +66,10 @@ area_percent <- area_percent |>
 
 ```
 
-\<\<\<\<\<\<\< HEAD
 
 ```{r}
 #| label: "complete join"
-#| 
+ 
 renewed_dataset <- full_join(attacks, injuries, by = c("period_start", "period_end")) |>
   full_join(area_percent, by = c("period_start", "period_end"))
 
