@@ -1,0 +1,271 @@
+---
+title: "model"
+format: pdf
+editor: visual
+author: Cooper Ruffing
+---
+
+```{r}
+#| label: "load data and libraries"
+
+library(readxl)
+library(tidyverse)
+library(dplyr)
+library(broom)
+library(MASS)
+library(AER)
+library(car)
+library(sandwich)
+library(lmtest)
+library(knitr)
+
+totaldata <- read_excel("aggregated_dataset.xlsx")
+
+```
+
+```{r}
+#| label: injury totals and proportions
+
+totaldata <- totaldata |>
+  mutate(totinjuries = Burn + CMF + Limb + NTD + `Soft Tissue` + `Wound Care`) |>
+  mutate(burnprop = Burn / totinjuries) |>
+  mutate(cmfprop = CMF / totinjuries) |>
+  mutate(limbprop = Limb / totinjuries) |>
+  mutate(ntdprop = NTD / totinjuries) |>
+  mutate(stprop = `Soft Tissue` / totinjuries) |>
+  mutate(wcprop = `Wound Care` / totinjuries)
+
+totaldata <- totaldata |>
+  mutate(across(where(is.numeric), ~ replace(., is.nan(.), 0)))
+
+```
+
+```{r}
+#| label: total model
+# Diagnostic + automatic-fix script
+# Paste and run this in your R session
+
+# ---- Setup (use your exact names) ----
+attack_cols <- c("Air/drone strike","Ground Attacks",
+                 "Shelling/artillery/missile attack","Civil Unrest","Other")
+controls <- c("avg_distance_km","Percentage of Total Attacks","percent_total_area")
+responses <- c("Burn","CMF","Limb","NTD","Soft Tissue","Wound Care")
+
+safe_formula <- function(response, predictors) {
+  lhs <- paste0("`", response, "`")
+  rhs <- paste(paste0("`", predictors, "`"), collapse = " + ")
+  as.formula(paste0(lhs, " ~ ", rhs))
+}
+
+td <- totaldata   # use your data
+
+# Helper: print nicely
+pmsg <- function(...) cat(sprintf(...), "\n")
+
+# 1) Quick column checks -----------------------------------------------------
+pmsg("1) Basic column checks:")
+cols <- unique(c(attack_cols, controls, responses))
+stopifnot(all(cols %in% colnames(td)))
+# classes
+print(sapply(cols, function(x) class(td[[x]])))
+# ranges for numeric predictors, and unique counts for all
+preds <- c(attack_cols, controls)
+pmsg("Ranges (min, max) for numeric predictors and unique counts:")
+for (nm in preds) {
+  if (is.numeric(td[[nm]])) {
+    rng <- range(td[[nm]], na.rm = TRUE)
+    pmsg("  %s: range = [%g, %g], unique = %d", nm, rng[1], rng[2], length(unique(td[[nm]])))
+  } else {
+    pmsg("  %s: NOT numeric (class=%s), unique = %d", nm, class(td[[nm]]), length(unique(td[[nm]])))
+  }
+}
+
+# 2) For each response: try model.matrix and basic diagnostics ----------------
+diagnose_response <- function(resp) {
+  pmsg("\n--- Diagnosing response: %s ---", resp)
+  form <- safe_formula(resp, c(attack_cols, controls))
+  pmsg("Formula: %s", deparse(form))
+  mm <- tryCatch(model.matrix(form, data = td),
+                 error = function(e) { pmsg("model.matrix() ERROR: %s", e$message); return(NULL) })
+  if (is.null(mm)) return(list(ok=FALSE, reason="model.matrix error"))
+  pmsg("model.matrix dims: %d rows x %d cols", nrow(mm), ncol(mm))
+  # check finite
+  if (!all(is.finite(mm))) {
+    bad <- which(!is.finite(mm), arr.ind = TRUE)
+    pmsg("Non-finite entries detected in model.matrix (showing up to 10):")
+    print(head(bad, 10))
+    badcols <- unique(bad[,2])
+    pmsg("Problematic model-matrix columns: %s", paste(colnames(mm)[badcols], collapse = ", "))
+    return(list(ok=FALSE, reason="model.matrix contains non-finite entries", badcols = colnames(mm)[badcols]))
+  } else {
+    pmsg("All entries in model.matrix are finite.")
+  }
+  # rank
+  qrinfo <- qr(mm)
+  pmsg("QR rank = %d  (ncol = %d)", qrinfo$rank, ncol(mm))
+  if (qrinfo$rank < ncol(mm)) {
+    pmsg(" -> Rank-deficient model matrix detected (perfect multicollinearity). Running alias() on lm to show combos...")
+    ali <- tryCatch(alias(lm(form, data = td)), error = function(e) { pmsg("alias() error: %s", e$message); NULL })
+    print(ali)
+    return(list(ok=FALSE, reason="rank-deficient", alias=ali))
+  }
+  return(list(ok=TRUE, mm=mm))
+}
+
+diag_results <- lapply(responses, diagnose_response)
+names(diag_results) <- responses
+
+# 3) Try single-predictor glm's to find which predictor causes fitting failure ----
+pmsg("\n2) Single-predictor Poisson fits (to isolate bad predictor).")
+single_try <- function(resp, pred) {
+  form <- safe_formula(resp, pred)
+  res <- tryCatch({
+    m <- glm(form, data = td, family = poisson(link="log"), control = glm.control(maxit=50, epsilon=1e-8))
+    list(ok=TRUE, model=m)
+  }, warning = function(w) {
+    list(ok="warning", msg=w$message)
+  }, error = function(e) {
+    list(ok=FALSE, msg=e$message)
+  })
+  res
+}
+
+single_map <- list()
+for (r in responses) {
+  pmsg("\nResponse = %s", r)
+  single_map[[r]] <- lapply(c(attack_cols, controls), function(p) {
+    res <- single_try(r, p)
+    if (isTRUE(res$ok)) {
+      pmsg("  Predictor %-40s -> OK", p)
+      "ok"
+    } else {
+      pmsg("  Predictor %-40s -> %s", p, paste0(res$ok, ": ", if(!is.null(res$msg)) res$msg else ""))
+      paste0(res$ok, ": ", if(!is.null(res$msg)) res$msg else "")
+    }
+  })
+  names(single_map[[r]]) <- c(attack_cols, controls)
+}
+
+# 4) If full models failed, try scaled predictors (standardize) ----------------
+pmsg("\n3) Attempt fitting full models with scaled predictors (scale helps numeric stability).")
+td_scaled <- td
+for (nm in c(attack_cols, controls)) {
+  if (is.numeric(td_scaled[[nm]])) {
+    td_scaled[[nm]] <- as.numeric(scale(td_scaled[[nm]]))
+  } else {
+    # try coercion
+    td_scaled[[nm]] <- as.numeric(as.character(td_scaled[[nm]]))
+  }
+}
+
+fit_full <- function(resp, data_df) {
+  form <- safe_formula(resp, c(attack_cols, controls))
+  fit <- tryCatch({
+    glm(form, data=data_df, family=poisson(link="log"), control = glm.control(maxit=100))
+  }, warning = function(w) {
+    # still return the model if it exists with a warning
+    list(warning=w$message, model=NULL)
+  }, error = function(e) {
+    list(error=e$message, model=NULL)
+  })
+  fit
+}
+
+scaled_fits <- lapply(responses, function(r) fit_full(r, td_scaled))
+names(scaled_fits) <- responses
+
+# report which scaled fits succeeded
+for (r in responses) {
+  f <- scaled_fits[[r]]
+  if (inherits(f, "glm")) {
+    pmsg("Scaled fit for %s: OK (glm)", r)
+  } else if (is.list(f) && !is.null(f$error)) {
+    pmsg("Scaled fit for %s: ERROR: %s", r, f$error)
+  } else if (is.list(f) && !is.null(f$warning)) {
+    pmsg("Scaled fit for %s: WARNING during fit: %s", r, f$warning)
+  } else {
+    pmsg("Scaled fit for %s: unknown result", r)
+  }
+}
+
+# 5) Systematic predictor removal: drop one predictor at a time and try full fit ----
+pmsg("\n4) Systematic single-predictor-removal trials to locate culprit(s).")
+full_fit_with_removed <- function(resp, remove_pred=NULL, data_df=td) {
+  preds <- setdiff(c(attack_cols, controls), remove_pred)
+  form <- safe_formula(resp, preds)
+  tryCatch({
+    glm(form, data = data_df, family = poisson(link="log"), control = glm.control(maxit=100))
+  }, error = function(e) e$message)
+}
+
+removal_results <- list()
+for (r in responses) {
+  pmsg("\nResponse: %s", r)
+  base_attempt <- tryFit <- tryCatch(glm(safe_formula(r, c(attack_cols, controls)), data = td,
+                                        family = poisson(link="log"), control = glm.control(maxit=50)),
+                                    error = function(e) e$message, warning = function(w) w$message)
+  if (inherits(base_attempt, "glm")) {
+    pmsg("  Full model without removals: succeeded (no removal needed).")
+    removal_results[[r]] <- list(full_ok=TRUE)
+    next
+  } else {
+    pmsg("  Full model failed (message: %s). Trying removals...", substr(as.character(base_attempt),1,200))
+  }
+  rr <- sapply(c(attack_cols, controls), function(p) {
+    msg <- full_fit_with_removed(r, remove_pred = p, data_df = td)
+    ok <- inherits(msg, "glm")
+    if (ok) {
+      pmsg("    Removing %-45s -> fit OK", p)
+      TRUE
+    } else {
+      pmsg("    Removing %-45s -> still fails: %s", p, substr(as.character(msg),1,120))
+      FALSE
+    }
+    ok
+  })
+  removal_results[[r]] <- rr
+}
+
+# 6) Fallback: try quasi-Poisson or increase glm control (often more stable) ----
+pmsg("\n5) Fallback attempts (quasi-Poisson & increased iterations) for previously failing responses.")
+fallback_results <- list()
+for (r in responses) {
+  pmsg("\nResponse: %s", r)
+  # try quasi-Poisson
+  qfit <- tryCatch(glm(safe_formula(r, c(attack_cols, controls)), data = td,
+                       family = quasipoisson(link="log"), control = glm.control(maxit=200)),
+                   error = function(e) e$message, warning = function(w) w$message)
+  fallback_results[[r]] <- list(quasi = qfit)
+  if (inherits(qfit, "glm")) pmsg("  quasi-Poisson: OK")
+  else pmsg("  quasi-Poisson: failed / message: %s", substr(as.character(qfit),1,200))
+}
+
+# Summary report --------------------------------------------------------------
+pmsg("\n===== SUMMARY =====")
+pmsg("Diagnostic results per response (model.matrix ok?):")
+for (r in responses) {
+  ok <- diag_results[[r]]$ok
+  pmsg("  %s : model.matrix OK? %s", r, ifelse(isTRUE(ok), "YES", paste0("NO -> ", diag_results[[r]]$reason)))
+}
+pmsg("Single-predictor map (first few):")
+print(lapply(single_map, function(x) head(unlist(x), 6)))
+pmsg("Scaled-fit success (which responses had an actual glm object):")
+print(sapply(scaled_fits, function(f) inherits(f, "glm")))
+
+pmsg("\nIf any response succeeded when predictors were scaled, try re-running the analysis using scaled predictors (scale(...) or log1p + scale).")
+pmsg("If removing a particular predictor made the fit succeed, that predictor is likely causing collinearity or separation; consider combining it (PCA) or dropping one of the correlated ones.")
+pmsg("If quasi-Poisson fit succeeded, overdispersion or numeric instability is likely — quasi-Poisson is sometimes more stable than NB when NB fails to converge.")
+pmsg("\nSaved diagnostics in variables: diag_results, single_map, scaled_fits, removal_results, fallback_results")
+
+```
+
+```{r}
+
+kable(summary(scaled_fits[["Burn"]])$coefficients)
+#kable(summary(scaled_fits[["CMF"]])$coefficients)
+kable(summary(scaled_fits[["Limb"]])$coefficients)
+#kable(summary(scaled_fits[["NTD"]])$coefficients)
+kable(summary(scaled_fits[["Soft Tissue"]])$coefficients)
+kable(summary(scaled_fits[["Wound Care"]])$coefficients)
+
+```
