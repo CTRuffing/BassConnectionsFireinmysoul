@@ -31,7 +31,6 @@ gov_percent <- read_excel("Governate Distributions/catchment_summary.xlsx")
 #| label: "clean attacks"
 
 attacks <- attacks |>
-  select(-"period_id", -"period") |>
   mutate(period_start = as.POSIXct(period_start, tz = "UTC")) |>
   mutate(period_end = as.POSIXct(period_end, tz = "UTC"))
 
@@ -41,7 +40,6 @@ attacks <- attacks |>
 ```{r}
 #| label: "clean injuries"
 injuries <- injuries |>
-  select(-"period") |>
   mutate(period_start = as.POSIXct(period_start, tz = "UTC")) |>
   mutate(period_end = as.POSIXct(period_end, tz = "UTC"))
 
