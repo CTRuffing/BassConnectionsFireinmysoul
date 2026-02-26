@@ -1,0 +1,318 @@
+---
+title: "binom_prop_model"
+format: pdf
+editor: visual
+author: "Cooper Ruffing"
+---
+
+```{r}
+
+library(readxl)
+library(tidyverse)
+library(dplyr)
+library(broom)
+library(MASS)
+library(AER)
+library(car)
+library(sandwich)
+library(lmtest)
+library(knitr)
+
+totaldata <- read_excel("aggregated_dataset.xlsx")
+
+totaldata <- totaldata |>
+  mutate(totinjuries = Burn + CMF + Limb + NTD + `Soft Tissue` + `Wound Care`) |>
+  mutate(burnprop = Burn / totinjuries) |>
+  mutate(cmfprop = CMF / totinjuries) |>
+  mutate(limbprop = Limb / totinjuries) |>
+  mutate(ntdprop = NTD / totinjuries) |>
+  mutate(stprop = `Soft Tissue` / totinjuries) |>
+  mutate(wcprop = `Wound Care` / totinjuries)
+
+totaldata <- totaldata |>
+  mutate(across(where(is.numeric), ~ replace(., is.nan(.), 0)))
+```
+
+
+```{r}
+#| label: total model (binomial proportions)
+# Diagnostic + automatic-fix script (PROPORTIONS via binomial denominator)
+# Paste and run this in your R session
+
+library(dplyr)
+
+# ---- Setup (use your exact names) ----
+attack_cols <- c("Air/drone strike","Ground Attacks",
+                 "Shelling/artillery/missile attack","Civil Unrest","Other")
+controls <- c("avg_distance_km","Percentage of Total Attacks","percent_total_area")
+
+# These are the COUNT columns (not proportions)
+responses <- c("Burn","CMF","Limb","NTD","Soft Tissue","Wound Care")
+
+td <- totaldata  # use your data
+
+# Helper: print nicely
+pmsg <- function(...) cat(sprintf(...), "\n")
+
+# Helper: backtick-safe formula building for predictors
+safe_rhs <- function(predictors) {
+  paste(paste0("`", predictors, "`"), collapse = " + ")
+}
+
+# Helper: build binomial formula: cbind(success, failure) ~ predictors
+safe_binom_formula <- function(response, predictors, denom_col = "totinjuries") {
+  lhs <- paste0("cbind(`", response, "`, `", denom_col, "` - `", response, "`)")
+  rhs <- safe_rhs(predictors)
+  as.formula(paste0(lhs, " ~ ", rhs))
+}
+
+# 0) Create denominator + clean ------------------------------------------------
+td <- td |>
+  mutate(totinjuries = `Burn` + `CMF` + `Limb` + `NTD` + `Soft Tissue` + `Wound Care`)
+
+# If you created prop columns already, that's fine, but we don't NEED them for the model.
+# IMPORTANT: For binomial models, rows with totinjuries = 0 are not informative and can cause issues.
+n0 <- sum(td$totinjuries == 0, na.rm = TRUE)
+pmsg("Rows with totinjuries == 0: %d (will be dropped for modeling)", n0)
+
+td <- td |>
+  filter(!is.na(totinjuries) & totinjuries > 0)
+
+# Convert NaN in numeric columns to 0 (your original step)
+td <- td |>
+  mutate(across(where(is.numeric), ~ replace(., is.nan(.), 0)))
+
+# Optional: Ensure predictors are numeric where expected (quietly coerce if needed)
+preds <- c(attack_cols, controls)
+for (nm in preds) {
+  if (!is.numeric(td[[nm]])) {
+    td[[nm]] <- suppressWarnings(as.numeric(as.character(td[[nm]])))
+  }
+}
+
+# 1) Quick column checks -------------------------------------------------------
+pmsg("\n1) Basic column checks:")
+cols_needed <- unique(c(attack_cols, controls, responses, "totinjuries"))
+stopifnot(all(cols_needed %in% colnames(td)))
+
+print(sapply(cols_needed, function(x) class(td[[x]])))
+
+pmsg("\nRanges (min, max) for numeric predictors and unique counts:")
+for (nm in preds) {
+  if (is.numeric(td[[nm]])) {
+    rng <- range(td[[nm]], na.rm = TRUE)
+    pmsg("  %s: range = [%g, %g], unique = %d", nm, rng[1], rng[2], length(unique(td[[nm]])))
+  } else {
+    pmsg("  %s: NOT numeric (class=%s), unique = %d", nm, class(td[[nm]]), length(unique(td[[nm]])))
+  }
+}
+
+# 2) For each response: try model.matrix and basic diagnostics -----------------
+diagnose_response <- function(resp) {
+  pmsg("\n--- Diagnosing response: %s ---", resp)
+
+  # sanity: resp must be within [0, totinjuries]
+  bad <- which(td[[resp]] < 0 | td[[resp]] > td$totinjuries | is.na(td[[resp]]) | is.na(td$totinjuries))
+  if (length(bad) > 0) {
+    pmsg("WARNING: %d rows have invalid counts for %s (outside [0, totinjuries] or NA).", length(bad), resp)
+    pmsg("Showing first few row indices: %s", paste(head(bad, 10), collapse = ", "))
+    return(list(ok = FALSE, reason = "invalid counts relative to totinjuries"))
+  }
+
+  form <- safe_binom_formula(resp, c(attack_cols, controls))
+  pmsg("Formula: %s", deparse(form))
+
+  mm <- tryCatch(model.matrix(form, data = td),
+                 error = function(e) { pmsg("model.matrix() ERROR: %s", e$message); return(NULL) })
+  if (is.null(mm)) return(list(ok=FALSE, reason="model.matrix error"))
+
+  pmsg("model.matrix dims: %d rows x %d cols", nrow(mm), ncol(mm))
+
+  if (!all(is.finite(mm))) {
+    badm <- which(!is.finite(mm), arr.ind = TRUE)
+    pmsg("Non-finite entries detected in model.matrix (showing up to 10):")
+    print(head(badm, 10))
+    badcols <- unique(badm[,2])
+    pmsg("Problematic model-matrix columns: %s", paste(colnames(mm)[badcols], collapse = ", "))
+    return(list(ok=FALSE, reason="model.matrix contains non-finite entries", badcols = colnames(mm)[badcols]))
+  } else {
+    pmsg("All entries in model.matrix are finite.")
+  }
+
+  qrinfo <- qr(mm)
+  pmsg("QR rank = %d  (ncol = %d)", qrinfo$rank, ncol(mm))
+  if (qrinfo$rank < ncol(mm)) {
+    pmsg(" -> Rank-deficient model matrix detected (perfect multicollinearity). Running alias() on lm to show combos...")
+    ali <- tryCatch(alias(lm(mm[,1] ~ mm[,-1])), error = function(e) { pmsg("alias() error: %s", e$message); NULL })
+    print(ali)
+    return(list(ok=FALSE, reason="rank-deficient", alias=ali))
+  }
+
+  return(list(ok=TRUE, mm=mm))
+}
+
+diag_results <- lapply(responses, diagnose_response)
+names(diag_results) <- responses
+
+# 3) Single-predictor fits to isolate a bad predictor -------------------------
+pmsg("\n2) Single-predictor (quasi)binomial fits (to isolate bad predictor).")
+
+single_try <- function(resp, pred) {
+  form <- safe_binom_formula(resp, pred)
+  res <- tryCatch({
+    m <- glm(form, data = td, family = quasibinomial(link="logit"),
+             control = glm.control(maxit=100, epsilon=1e-8))
+    list(ok=TRUE, model=m)
+  }, warning = function(w) {
+    list(ok="warning", msg=w$message)
+  }, error = function(e) {
+    list(ok=FALSE, msg=e$message)
+  })
+  res
+}
+
+single_map <- list()
+for (r in responses) {
+  pmsg("\nResponse = %s", r)
+  single_map[[r]] <- lapply(c(attack_cols, controls), function(p) {
+    res <- single_try(r, p)
+    if (isTRUE(res$ok)) {
+      pmsg("  Predictor %-40s -> OK", p)
+      "ok"
+    } else {
+      pmsg("  Predictor %-40s -> %s", p, paste0(res$ok, ": ", if(!is.null(res$msg)) res$msg else ""))
+      paste0(res$ok, ": ", if(!is.null(res$msg)) res$msg else "")
+    }
+  })
+  names(single_map[[r]]) <- c(attack_cols, controls)
+}
+
+# 4) Full models (quasibinomial) + scaled predictors --------------------------
+pmsg("\n3) Attempt fitting full models with scaled predictors (helps numeric stability).")
+
+td_scaled <- td
+for (nm in c(attack_cols, controls)) {
+  if (is.numeric(td_scaled[[nm]])) {
+    td_scaled[[nm]] <- as.numeric(scale(td_scaled[[nm]]))
+  } else {
+    td_scaled[[nm]] <- suppressWarnings(as.numeric(as.character(td_scaled[[nm]])))
+  }
+}
+
+fit_full <- function(resp, data_df) {
+  form <- safe_binom_formula(resp, c(attack_cols, controls))
+  tryCatch({
+    glm(form, data=data_df, family=quasibinomial(link="logit"), control = glm.control(maxit=200))
+  }, error = function(e) list(error=e$message, model=NULL),
+     warning = function(w) list(warning=w$message, model=NULL))
+}
+
+scaled_fits <- lapply(responses, function(r) fit_full(r, td_scaled))
+names(scaled_fits) <- responses
+
+for (r in responses) {
+  f <- scaled_fits[[r]]
+  if (inherits(f, "glm")) {
+    pmsg("Scaled quasi-binom fit for %s: OK (glm)", r)
+  } else if (is.list(f) && !is.null(f$error)) {
+    pmsg("Scaled quasi-binom fit for %s: ERROR: %s", r, f$error)
+  } else if (is.list(f) && !is.null(f$warning)) {
+    pmsg("Scaled quasi-binom fit for %s: WARNING during fit: %s", r, f$warning)
+  } else {
+    pmsg("Scaled quasi-binom fit for %s: unknown result", r)
+  }
+}
+
+# 5) Systematic predictor removal ---------------------------------------------
+pmsg("\n4) Systematic single-predictor-removal trials to locate culprit(s).")
+
+full_fit_with_removed <- function(resp, remove_pred=NULL, data_df=td) {
+  preds2 <- setdiff(c(attack_cols, controls), remove_pred)
+  form <- safe_binom_formula(resp, preds2)
+  tryCatch({
+    glm(form, data = data_df, family = quasibinomial(link="logit"), control = glm.control(maxit=200))
+  }, error = function(e) e$message)
+}
+
+removal_results <- list()
+for (r in responses) {
+  pmsg("\nResponse: %s", r)
+
+  base_attempt <- tryCatch(
+    glm(safe_binom_formula(r, c(attack_cols, controls)), data = td,
+        family = quasibinomial(link="logit"), control = glm.control(maxit=100)),
+    error = function(e) e$message,
+    warning = function(w) w$message
+  )
+
+  if (inherits(base_attempt, "glm")) {
+    pmsg("  Full model without removals: succeeded (no removal needed).")
+    removal_results[[r]] <- list(full_ok=TRUE)
+    next
+  } else {
+    pmsg("  Full model failed (message: %s). Trying removals...", substr(as.character(base_attempt),1,200))
+  }
+
+  rr <- sapply(c(attack_cols, controls), function(p) {
+    msg <- full_fit_with_removed(r, remove_pred = p, data_df = td)
+    ok <- inherits(msg, "glm")
+    if (ok) pmsg("    Removing %-45s -> fit OK", p)
+    else    pmsg("    Removing %-45s -> still fails: %s", p, substr(as.character(msg),1,120))
+    ok
+  })
+  removal_results[[r]] <- rr
+}
+
+# 6) Fallback: strict binomial (can be less stable with overdispersion) --------
+# Note: quasibinomial is usually the simplest robust option.
+pmsg("\n5) Fallback attempts (binomial with increased iterations) for previously failing responses.")
+
+fallback_results <- list()
+for (r in responses) {
+  pmsg("\nResponse: %s", r)
+
+  bfit <- tryCatch(
+    glm(safe_binom_formula(r, c(attack_cols, controls)), data = td,
+        family = binomial(link="logit"), control = glm.control(maxit=400)),
+    error = function(e) e$message,
+    warning = function(w) w$message
+  )
+
+  fallback_results[[r]] <- list(binomial = bfit)
+
+  if (inherits(bfit, "glm")) pmsg("  binomial: OK")
+  else pmsg("  binomial: failed / message: %s", substr(as.character(bfit),1,200))
+}
+
+# Summary report --------------------------------------------------------------
+pmsg("\n===== SUMMARY =====")
+pmsg("Diagnostic results per response (model.matrix ok?):")
+for (r in responses) {
+  ok <- diag_results[[r]]$ok
+  pmsg("  %s : model.matrix OK? %s", r, ifelse(isTRUE(ok), "YES", paste0("NO -> ", diag_results[[r]]$reason)))
+}
+
+pmsg("\nSingle-predictor map (first few):")
+print(lapply(single_map, function(x) head(unlist(x), 6)))
+
+pmsg("\nScaled-fit success (which responses had an actual glm object):")
+print(sapply(scaled_fits, function(f) inherits(f, "glm")))
+
+pmsg("\nSaved diagnostics in variables: diag_results, single_map, scaled_fits, removal_results, fallback_results")
+pmsg("\nInterpretation:")
+pmsg("- This models each injury type as a proportion of totinjuries via a binomial denominator, which is valid.")
+pmsg("- Use quasibinomial to handle overdispersion; coefficients are still interpretable as log-odds effects on the proportion.")
+```
+
+```{r}
+kable(summary(scaled_fits[["Burn"]])$coefficients)
+#kable(summary(scaled_fits[["CMF"]])$coefficients)
+kable(summary(scaled_fits[["Limb"]])$coefficients)
+#kable(summary(scaled_fits[["NTD"]])$coefficients)
+kable(summary(scaled_fits[["Soft Tissue"]])$coefficients)
+kable(summary(scaled_fits[["Wound Care"]])$coefficients)
+
+
+```
+
+

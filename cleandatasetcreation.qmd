@@ -23,13 +23,14 @@ injuries <- read_excel("injuries.xlsx")
 
 area_percent <- read_excel("catchment_calculation_results.xlsx")
 
+gov_percent <- read_excel("Governate Distributions/catchment_summary.xlsx")
+
 ```
 
 ```{r}
 #| label: "clean attacks"
 
 attacks <- attacks |>
-  select(-"period_id", -"period") |>
   mutate(period_start = as.POSIXct(period_start, tz = "UTC")) |>
   mutate(period_end = as.POSIXct(period_end, tz = "UTC"))
 
@@ -39,7 +40,6 @@ attacks <- attacks |>
 ```{r}
 #| label: "clean injuries"
 injuries <- injuries |>
-  select(-"period") |>
   mutate(period_start = as.POSIXct(period_start, tz = "UTC")) |>
   mutate(period_end = as.POSIXct(period_end, tz = "UTC"))
 
@@ -64,11 +64,10 @@ area_percent <- area_percent |>
 
 ```
 
-\<\<\<\<\<\<\< HEAD
 
 ```{r}
 #| label: "complete join"
-#| 
+ 
 renewed_dataset <- full_join(attacks, injuries, by = c("period_start", "period_end")) |>
   full_join(area_percent, by = c("period_start", "period_end"))
 

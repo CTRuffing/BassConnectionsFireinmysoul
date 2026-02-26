@@ -24,17 +24,40 @@ totaldata <- read_excel("aggregated_dataset.xlsx")
 
 ```{r}
 
-ggplot(totaldata, aes(x = period_start, y = `Total Attacks in Segment`)) +
-  geom_point()
+gov_percent <- read_excel("Governate Distributions/catchment_summary.xlsx")
 
-ggplot(totaldata, aes(x = `Total Attacks in Segment`, y = avg_distance_km)) +
-  geom_point()
+gov_percent <- gov_percent |>
+  mutate(start_date = as.Date(substr(`...1`, 1, 10)))
 
-ggplot(totaldata, aes(x = `Catchment Area (km²)`, y = `Percentage of Total Attacks`)) +
-  geom_point()
+gov_percent <- gov_percent |>
+  pivot_longer(cols = c(`North Gaza...4`, Gaza...5, `Deir Al-Balah...6`, `Khan Younis...7`, Rafah...8), names_to = "Governorate", values_to = "sq_km_of_catchment" )
 
-ggplot(totaldata, aes(x = avg_distance_km, y = `Catchment Area (km²)`)) +
-  geom_point()
+gov_percent <- gov_percent |>
+  rename(date_range = `...1`, hospital = `...2`, total_area = `...3`) |>
+  mutate(governorate_percentage = sq_km_of_catchment / total_area)
+
+plot_df <- gov_percent %>%
+  group_by(start_date, hospital, Governorate,date_range) %>%
+  summarise(sq_km = sum(sq_km_of_catchment, na.rm = TRUE), .groups = "drop")
+
+ggplot(plot_df, aes(x = start_date, y = sq_km, fill = Governorate)) +
+  geom_col() +
+  facet_wrap(~ hospital) +
+  labs(x = "Start date",
+       y = "Sq km of catchment",
+       fill = "Governorate") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggplot(plot_df, aes(x = as.factor(date_range), y = sq_km, fill = Governorate)) +
+  geom_col() +
+  facet_wrap(~ hospital) +
+  labs(x = "Start date",
+       y = "Sq km of catchment",
+       fill = "Governorate") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
 
 ```
 
@@ -54,7 +77,6 @@ totaldata <- totaldata |>
   mutate(across(where(is.numeric), ~ replace(., is.nan(.), 0)))
 
 ```
-
 
 ```{r}
 #| label: all-variables-vs-time
@@ -487,4 +509,3 @@ print(p_combined)
 
   
 ```
-
