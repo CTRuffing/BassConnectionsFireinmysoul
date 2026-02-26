@@ -1,0 +1,180 @@
+---
+title: "OSMP_dataset"
+author: "Matthew R. Sun"
+format: pdf
+editor: visual
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+1 + 1
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
+
+```{r}
+# ============================================================
+# OSMP Palestinian Territories Scraper (Stable Version)
+# No Selenium, No Chromote, No REST
+# ============================================================
+
+# Install packages if needed
+pkgs <- c("rvest","xml2","dplyr","purrr","stringr",
+          "tibble","tidyr","janitor","writexl")
+to_install <- pkgs[!pkgs %in% installed.packages()[,"Package"]]
+if(length(to_install)>0) install.packages(to_install)
+
+library(rvest)
+library(xml2)
+library(dplyr)
+library(purrr)
+library(stringr)
+library(tibble)
+library(tidyr)
+library(janitor)
+library(writexl)
+
+BASE_LOCATION_URL <- "https://osmp.ngo/location/palestine/"
+BASE_DOMAIN <- "https://osmp.ngo"
+
+# -----------------------------
+# STEP 1: Extract OSMP IDs from paginated location pages
+# -----------------------------
+page <- 1
+all_ids <- character()
+
+repeat {
+
+  page_url <- if(page == 1) {
+    BASE_LOCATION_URL
+  } else {
+    paste0(BASE_LOCATION_URL, "page/", page, "/")
+  }
+
+  message("Reading page: ", page_url)
+
+  doc <- tryCatch(read_html(page_url), error=function(e) NULL)
+  if(is.null(doc)) break
+
+  page_text <- html_text(doc)
+
+  # Extract patterns like OSMP 706 or osmp706
+  ids_found <- str_extract_all(page_text, "(?i)OSMP\\s*\\d+")[[1]]
+
+  if(length(ids_found) == 0) break
+
+  ids_clean <- str_extract(ids_found, "\\d+")
+  new_ids <- setdiff(ids_clean, all_ids)
+
+  if(length(new_ids) == 0) break
+
+  all_ids <- unique(c(all_ids, new_ids))
+
+  message("  Total IDs collected: ", length(all_ids))
+
+  page <- page + 1
+}
+
+if(length(all_ids) == 0) {
+  stop("No OSMP IDs detected from location pages.")
+}
+
+message("Total OSMP entries detected: ", length(all_ids))
+
+# -----------------------------
+# STEP 2: Build OSMP URLs
+# -----------------------------
+osmp_urls <- paste0(BASE_DOMAIN, "/osmp", all_ids, "/")
+
+# -----------------------------
+# STEP 3: Scrape each OSMP detail page
+# -----------------------------
+parse_osmp_page <- function(url) {
+
+  message("Scraping: ", url)
+
+  doc <- tryCatch(read_html(url), error=function(e) NULL)
+  if(is.null(doc)) return(NULL)
+
+  h4_nodes <- html_elements(doc, "h4")
+
+  result <- list(osmp_url = url)
+
+  for(i in seq_along(h4_nodes)) {
+
+    label <- html_text2(h4_nodes[i], trim=TRUE)
+    label_clean <- make_clean_names(label)
+
+    sibs <- xml_find_all(h4_nodes[i], "following-sibling::*")
+    next_h4 <- which(xml_name(sibs) == "h4")[1]
+
+    if(!is.na(next_h4) && next_h4 > 1) {
+      sibs <- sibs[1:(next_h4-1)]
+    }
+
+    value <- paste(html_text2(sibs, trim=TRUE), collapse=" ") %>%
+      str_squish()
+
+    result[[paste0("field__", label_clean)]] <- value
+  }
+
+  as_tibble(result)
+}
+
+all_data <- map_dfr(osmp_urls, parse_osmp_page) %>%
+  clean_names()
+
+# -----------------------------
+# STEP 4: Actor Attribution
+# -----------------------------
+ISRAEL_KEYWORDS <- c(
+  "idf","israel","israeli","jdam","gbu-31",
+  "gbu-32","gbu-38","mk 84","spice","harop",
+  "skystriker","spike firefly"
+)
+
+PALESTINIAN_KEYWORDS <- c(
+  "qassam","fajr","grad","kheibar",
+  "m-302","fateh","iranian"
+)
+
+all_data <- all_data %>%
+  mutate(
+    text_blob = tolower(paste(across(starts_with("field__")), collapse=" ")),
+    actor_vs_target = case_when(
+      str_detect(text_blob, str_c(ISRAEL_KEYWORDS, collapse="|")) ~
+        "Israel attacking Palestine",
+      str_detect(text_blob, str_c(PALESTINIAN_KEYWORDS, collapse="|")) ~
+        "Palestine attacking Israel",
+      TRUE ~ "Uncertain"
+    ),
+    attribution_confidence = ifelse(
+      actor_vs_target == "Uncertain","Low","Medium"
+    )
+  )
+
+# -----------------------------
+# STEP 5: Export Excel
+# -----------------------------
+write_xlsx(
+  list(OSMP_Records = all_data),
+  "osmp_palestinian_territories_full_export.xlsx"
+)
+
+message("Done. Export complete.")
+```
+
