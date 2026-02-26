@@ -1,0 +1,117 @@
+//Al Shifa is in Gaza City
+//EGH:  Khan Younis City
+//Al Nasser is also in Gaza City 
+
+library(ggplot2)
+
+# -----------------------------
+# Shared setup
+# -----------------------------
+months <- c(
+  "Oct '23","Nov '23","Dec '23","Jan '24","Feb '24","Mar '24",
+  "Apr '24","May '24","Jun '24","Jul '24","Aug '24","Sep '24",
+  "Oct '24","Nov '24","Dec '24","Jan '25","Feb '25","Mar '25",
+  "Apr '25","May '25"
+)
+
+level_map <- c("Low" = 1, "Medium" = 2, "High" = 3)
+
+# Muted/pastel-ish but still clear
+color_map <- c(
+  "Low"    = "#78B88B",  # muted green
+  "Medium" = "#E0C04C",  # muted yellow
+  "High"   = "#D06A5C"   # muted red
+)
+
+make_timeline_plot <- function(location_name, values, out_file) {
+  if (length(values) != length(months)) {
+    stop(sprintf(
+      "Error: '%s' has %d values but months has %d entries.",
+      location_name, length(values), length(months)
+    ))
+  }
+
+  df <- data.frame(
+    month  = factor(months, levels = months),
+    level  = factor(values, levels = c("Low", "Medium", "High")),
+    height = unname(level_map[values])
+  )
+
+  p <- ggplot(df, aes(x = month, y = height, fill = level)) +
+    geom_col(
+      color = "black",
+      linewidth = 0.5,
+      width = 0.9
+    ) +
+    scale_fill_manual(values = color_map, name = NULL, drop = FALSE) +
+    scale_y_continuous(
+      breaks = c(1, 2, 3),
+      labels = c("Low", "Medium", "High"),
+      limits = c(0, 3.2),
+      expand = c(0, 0)
+    ) +
+    labs(
+      title = paste0(location_name, ": Population Density Timeline\nOctober 2023 to May 2025"),
+      x = "Month",
+      y = "Population Density Level"
+    ) +
+    theme_classic(base_size = 11) +
+    theme(
+      # All fonts black
+      text = element_text(color = "black", family = "sans"),
+
+      # Titles / axes
+      plot.title  = element_text(face = "bold", size = 12, hjust = 0, lineheight = 1.2),
+      axis.text.x = element_text(angle = 45, hjust = 1, size = 8, color = "black"),
+      axis.text.y = element_text(size = 9, color = "black"),
+      axis.title  = element_text(size = 10, color = "black"),
+
+      # Make axes & ticks black (no gray)
+      axis.line  = element_line(color = "black", linewidth = 0.6),
+      axis.ticks = element_line(color = "black", linewidth = 0.6),
+
+      # White backgrounds, no rounded corners
+      plot.background  = element_rect(fill = "white", color = NA),
+      panel.background = element_rect(fill = "white", color = NA),
+
+      # Legend styling
+      legend.position = "right",
+      legend.text = element_text(color = "black", size = 9)
+    )
+
+  ggsave(
+    filename = out_file,
+    plot     = p,
+    width    = 10,
+    height   = 5,
+    dpi      = 300,
+    bg       = "white"
+  )
+
+  message("Saved: ", out_file)
+}
+
+# -----------------------------
+# 1) Gaza City values (from your example)
+# NOTE: your pasted values list appears to have 20 entries; months has 20.
+# -----------------------------
+gaza_city_values <- c(
+  "Medium","Low","Low","Low","Low","Low","Low","Low",
+  "Low","Low","Low","Low","Low","Low","Medium","Medium",
+  "Medium","Medium","Medium","Medium"
+)
+
+# -----------------------------
+# 2) Khan Younis values (REPLACE with your 20 monthly entries)
+# -----------------------------
+khan_younis_values <- c(
+  "Low","Low","Low","Low","Low","Low","Low","Low",
+  "Low","Low","Low","Low","Low","Low","Low","Low",
+  "Low","Low","Low","Low"
+)
+
+# -----------------------------
+# Export two separate images
+# -----------------------------
+make_timeline_plot("Gaza City",  gaza_city_values,  "gaza_city_population_density.png")
+make_timeline_plot("Khan Younis", khan_younis_values, "khan_younis_population_density.png")

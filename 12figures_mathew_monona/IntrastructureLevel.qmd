@@ -1,0 +1,79 @@
+library(ggplot2)
+
+months <- c(
+  "Oct '23","Nov '23","Dec '23","Jan '24","Feb '24","Mar '24",
+  "Apr '24","May '24","Jun '24","Jul '24","Aug '24","Sep '24",
+  "Oct '24","Nov '24","Dec '24","Jan '25","Feb '25","Mar '25",
+  "Apr '25","May '25"
+)
+
+level_map <- c("Rubble" = 1, "Camp" = 2, "Suburban" = 3, "Urban" = 4)
+
+color_map <- c(
+  "Rubble"   = "#D06A5C",
+  "Camp"     = "#E0C04C",
+  "Suburban" = "#7FA9D8",
+  "Urban"    = "#78B88B"
+)
+
+make_timeline_plot <- function(location_name, values, out_file) {
+
+  df <- data.frame(
+    month  = factor(months, levels = months),
+    level  = factor(values, levels = c("Rubble","Camp","Suburban","Urban")),
+    height = unname(level_map[values])
+  )
+
+  p <- ggplot(df, aes(x = month, y = height, fill = level)) +
+    geom_col(
+      color = "black",
+      linewidth = 0.5,
+      width = 0.9
+    ) +
+    scale_fill_manual(values = color_map, name = NULL, drop = FALSE) +
+    scale_y_continuous(
+      breaks = c(1,2,3,4),
+      labels = c("Rubble","Camp","Suburban","Urban"),
+      limits = c(0,4.2),
+      expand = c(0,0)
+    ) +
+    labs(
+      title = paste0(location_name, ": Infrastructure Level Timeline\nOctober 2023 to May 2025"),
+      x = "Month",
+      y = "Infrastructure Level"
+    ) +
+    theme_classic(base_size = 11) +
+    theme(
+      text = element_text(color = "black"),
+      plot.title  = element_text(face = "bold", hjust = 0),
+      axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
+      axis.line   = element_line(color = "black"),
+      axis.ticks  = element_line(color = "black"),
+      plot.background  = element_rect(fill = "white", color = NA),
+      panel.background = element_rect(fill = "white", color = NA)
+    )
+
+  ggsave(
+    filename = out_file,
+    plot     = p,
+    width    = 10,
+    height   = 5,
+    dpi      = 300,
+    bg       = "white"
+  )
+}
+
+gaza_city_values <- c(
+  "Urban","Rubble","Rubble","Rubble","Rubble","Rubble","Rubble","Rubble",
+  "Rubble","Rubble","Rubble","Rubble","Rubble","Rubble","Rubble","Rubble",
+  "Rubble","Rubble","Rubble","Rubble"
+)
+
+khan_younis_values <- c(
+  "Urban","Urban","Rubble","Rubble","Rubble","Rubble","Rubble","Rubble",
+  "Rubble","Rubble","Rubble","Rubble","Rubble","Rubble","Rubble","Rubble",
+  "Rubble","Rubble","Rubble","Rubble"
+)
+
+make_timeline_plot("Gaza City", gaza_city_values, "gaza_city_infrastructure_level.png")
+make_timeline_plot("Khan Younis", khan_younis_values, "khan_younis_infrastructure_level.png")
