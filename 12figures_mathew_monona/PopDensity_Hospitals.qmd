@@ -1,6 +1,7 @@
-//Al Shifa is in Gaza City
-//EGH:  Khan Younis City
-//Al Nasser is also in Gaza City 
+```{r}
+#//Al Shifa is in Gaza City
+#//EGH:  Khan Younis City
+#//Al Nasser is also in Gaza City 
 
 library(ggplot2)
 
@@ -115,3 +116,5 @@ khan_younis_values <- c(
 # -----------------------------
 make_timeline_plot("Gaza City",  gaza_city_values,  "gaza_city_population_density.png")
 make_timeline_plot("Khan Younis", khan_younis_values, "khan_younis_population_density.png")
+```
+

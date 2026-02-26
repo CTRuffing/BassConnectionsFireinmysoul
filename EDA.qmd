@@ -618,14 +618,19 @@ ggplot2::ggplot(attack_summary,
 
 
 ```{r}
-# In your .qmd header for this chunk:
-# fig.width=14, fig.height=12
+#| label: hospital_distribution_layout
+#| fig.width: 14
+#| fig.height: 11
+#| warning: false
+#| message: false
+
+# install.packages(c("readxl","dplyr","tidyr","ggplot2","stringr","patchwork","scales")) # run once if needed
 
 library(ggplot2)
 library(patchwork)
 
 # ---------------------------
-# Load Data
+# 1. Load Data
 # ---------------------------
 
 xlsx_candidates <- c("aggregated_dataset.xlsx", "/mnt/data/aggregated_dataset.xlsx")
@@ -638,10 +643,11 @@ df <- readxl::read_xlsx(dataset_path)
 names(df) <- stringr::str_trim(names(df))
 names(df) <- stringr::str_replace_all(names(df), "[\\s]+", " ")
 
-hospital_col <- names(df)[tolower(names(df)) %in% 
+hospital_col <- names(df)[tolower(names(df)) %in%
                             c("hospital","hospital_name","facility","facility_name")][1]
 if (is.na(hospital_col)) stop("Hospital column not detected.")
 
+# Standardize hospital names
 df <- df |>
   dplyr::mutate(
     hospital_group = dplyr::case_when(
@@ -662,7 +668,7 @@ hospital_levels <- c(
 df$hospital_group <- factor(df$hospital_group, levels = hospital_levels)
 
 # ---------------------------
-# Summaries
+# 2. Create Summaries
 # ---------------------------
 
 injury_types <- c("Burn","CMF","Limb","NTD","Soft Tissue","Wound Care")
@@ -690,24 +696,21 @@ attack_summary <- df |>
   dplyr::summarise(total = sum(count, na.rm=TRUE), .groups="drop")
 
 # ---------------------------
-# Improved Readability Theme
+# 3. Styling (Readable)
 # ---------------------------
 
-better_theme <- theme_minimal(base_size = 14) +
+plot_theme <- theme_minimal(base_size = 14) +
   theme(
-    axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
+    axis.text.x = element_text(angle = 45, hjust = 1),
     axis.text.y = element_text(size = 12),
-    axis.title = element_text(size = 13),
-    plot.title = element_text(size = 15, face = "bold", hjust = 0.5),
-    legend.position = "none",
-    plot.margin = margin(15, 15, 15, 15)
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    legend.position = "none"
   )
 
-# Add 20% headroom so bars aren't squashed
-injury_max <- max(injury_summary$total, na.rm = TRUE) * 1.20
-attack_max <- max(attack_summary$total, na.rm = TRUE) * 1.20
+injury_max <- max(injury_summary$total, na.rm = TRUE) * 1.2
+attack_max <- max(attack_summary$total, na.rm = TRUE) * 1.2
 
-make_plot <- function(data, hosp, ymax) {
+make_plot <- function(data, hosp, ymax, title_text) {
   ggplot(
     data |> dplyr::filter(hospital_group == hosp),
     aes(x = type, y = total, fill = type)
@@ -715,39 +718,32 @@ make_plot <- function(data, hosp, ymax) {
     geom_col(width = 0.75) +
     scale_y_continuous(
       limits = c(0, ymax),
-      breaks = scales::pretty_breaks(n = 6),
-      expand = expansion(mult = c(0, 0.02))
+      breaks = scales::pretty_breaks(n = 6)
     ) +
-    labs(x = NULL, y = "Total Count", title = hosp) +
-    better_theme
+    labs(title = title_text, x = NULL, y = "Total Count") +
+    plot_theme
 }
 
 # ---------------------------
-# Build Rows
+# 4. Build Six Plots
 # ---------------------------
 
-inj_row <- (
-  make_plot(injury_summary, hospital_levels[1], injury_max) |
-  make_plot(injury_summary, hospital_levels[2], injury_max) |
-  make_plot(injury_summary, hospital_levels[3], injury_max)
-)
+# Injury row
+p1 <- make_plot(injury_summary, hospital_levels[1], injury_max, hospital_levels[1])
+p2 <- make_plot(injury_summary, hospital_levels[2], injury_max, hospital_levels[2])
+p3 <- make_plot(injury_summary, hospital_levels[3], injury_max, hospital_levels[3])
 
-att_row <- (
-  make_plot(attack_summary, hospital_levels[1], attack_max) |
-  make_plot(attack_summary, hospital_levels[2], attack_max) |
-  make_plot(attack_summary, hospital_levels[3], attack_max)
-)
+# Attack row
+p4 <- make_plot(attack_summary, hospital_levels[1], attack_max, hospital_levels[1])
+p5 <- make_plot(attack_summary, hospital_levels[2], attack_max, hospital_levels[2])
+p6 <- make_plot(attack_summary, hospital_levels[3], attack_max, hospital_levels[3])
 
-final_plot <- inj_row /
-              att_row +
-  plot_annotation(
-    title = "Hospital-Level Distribution of Injuries and Attacks",
-    theme = theme(
-      plot.title = element_text(size = 18, face = "bold", hjust = 0.5)
-    )
-  )
+# ---------------------------
+# 5. Arrange Layout
+# ---------------------------
 
-final_plot
+(p1 | p2 | p3) /
+(p4 | p5 | p6)
 ```
 
 
