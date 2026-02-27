@@ -1,3 +1,4 @@
+```{r}
 library(ggplot2)
 
 months <- c(
@@ -77,3 +78,5 @@ khan_younis_values <- c(
 
 make_timeline_plot("Gaza City", gaza_city_values, "gaza_city_infrastructure_level.png")
 make_timeline_plot("Khan Younis", khan_younis_values, "khan_younis_infrastructure_level.png")
+```
+

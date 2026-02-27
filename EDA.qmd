@@ -2,7 +2,7 @@
 title: "EDA"
 format: pdf
 editor: visual
-author: Cooper Ruffing
+author: Cooper Ruffing, Matthew R. Sun
 ---
 
 ```{r}
@@ -509,3 +509,241 @@ print(p_combined)
 
   
 ```
+
+```{r}
+
+# Required packages (install once if needed)
+# install.packages(c("readxl","dplyr","tidyr","ggplot2","stringr"))
+
+library(ggplot2)
+
+# --- Read dataset ---
+xlsx_candidates <- c("aggregated_dataset.xlsx", "/mnt/data/aggregated_dataset.xlsx")
+dataset_path <- NULL
+for (p in xlsx_candidates) if (file.exists(p)) { dataset_path <- p; break }
+if (is.null(dataset_path)) stop("Could not find aggregated_dataset.xlsx")
+
+df <- readxl::read_xlsx(dataset_path)
+
+# Clean column names
+names(df) <- stringr::str_trim(names(df))
+names(df) <- stringr::str_replace_all(names(df), "[\\s]+", " ")
+lc_names <- tolower(names(df))
+
+# --- Identify hospital column ---
+hospital_col <- names(df)[which(lc_names %in% c("hospital","hospital_name","facility","facility_name"))[1]]
+if (is.na(hospital_col)) stop("Hospital column not detected. Check column name.")
+
+# --- Attack types (exact names from spreadsheet) ---
+attack_types <- c(
+  "Air/drone strike",
+  "Ground Attacks",
+  "Shelling/artillery/missile attack",
+  "Civil Unrest",
+  "Other"
+)
+
+# Ensure attack columns exist
+missing_attacks <- setdiff(attack_types, names(df))
+if (length(missing_attacks) > 0) {
+  stop(paste("Missing attack columns:", paste(missing_attacks, collapse=", ")))
+}
+
+# --- Hospitals to analyze (in desired order) ---
+hospital_targets <- c(
+  "Al Shifa",
+  "European",
+  "Nasser"
+)
+
+# --- Filter relevant hospitals ---
+df_hosp <- df |>
+  dplyr::filter(
+    stringr::str_detect(tolower(.data[[hospital_col]]), "al shifa") |
+    stringr::str_detect(tolower(.data[[hospital_col]]), "european") |
+    stringr::str_detect(tolower(.data[[hospital_col]]), "nasser")
+  )
+
+# Create clean hospital label
+df_hosp <- df_hosp |>
+  dplyr::mutate(
+    hospital_group = dplyr::case_when(
+      stringr::str_detect(tolower(.data[[hospital_col]]), "al shifa") ~ "Al Shifa Medical Hospital",
+      stringr::str_detect(tolower(.data[[hospital_col]]), "european") ~ "European Hospital",
+      stringr::str_detect(tolower(.data[[hospital_col]]), "nasser") ~ "Nasser Hospital",
+      TRUE ~ NA_character_
+    )
+  )
+
+# --- Sum attacks by hospital ---
+attack_summary <- df_hosp |>
+  dplyr::select(hospital_group, dplyr::all_of(attack_types)) |>
+  tidyr::pivot_longer(
+    cols = -hospital_group,
+    names_to = "attack_type",
+    values_to = "count"
+  ) |>
+  dplyr::mutate(count = as.numeric(count)) |>
+  dplyr::group_by(hospital_group, attack_type) |>
+  dplyr::summarise(total = sum(count, na.rm = TRUE), .groups = "drop")
+
+# Order hospitals consistently
+attack_summary$hospital_group <- factor(
+  attack_summary$hospital_group,
+  levels = c(
+    "Al Shifa Medical Hospital",
+    "European Hospital",
+    "Nasser Hospital"
+  )
+)
+
+# --- Plot ---
+ggplot2::ggplot(attack_summary,
+                ggplot2::aes(x = attack_type, y = total, fill = attack_type)) +
+  ggplot2::geom_col(show.legend = FALSE) +
+  ggplot2::geom_text(ggplot2::aes(label = total), vjust = -0.25, size = 3) +
+  ggplot2::facet_wrap(~ hospital_group, nrow = 1) +
+  ggplot2::labs(
+    title = "Attack Distribution by Hospital (Sum of Counts)",
+    x = "Attack Type",
+    y = "Total Count"
+  ) +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(
+    axis.text.x = ggplot2::element_text(angle = 45, hjust = 1),
+    plot.title = ggplot2::element_text(hjust = 0.5)
+  )
+
+```
+
+
+```{r}
+#| label: hospital_distribution_layout
+#| fig.width: 14
+#| fig.height: 11
+#| warning: false
+#| message: false
+
+# install.packages(c("readxl","dplyr","tidyr","ggplot2","stringr","patchwork","scales")) # run once if needed
+
+library(ggplot2)
+library(patchwork)
+
+# ---------------------------
+# 1. Load Data
+# ---------------------------
+
+xlsx_candidates <- c("aggregated_dataset.xlsx", "/mnt/data/aggregated_dataset.xlsx")
+dataset_path <- NULL
+for (p in xlsx_candidates) if (file.exists(p)) { dataset_path <- p; break }
+if (is.null(dataset_path)) stop("Could not find aggregated_dataset.xlsx")
+
+df <- readxl::read_xlsx(dataset_path)
+
+names(df) <- stringr::str_trim(names(df))
+names(df) <- stringr::str_replace_all(names(df), "[\\s]+", " ")
+
+hospital_col <- names(df)[tolower(names(df)) %in%
+                            c("hospital","hospital_name","facility","facility_name")][1]
+if (is.na(hospital_col)) stop("Hospital column not detected.")
+
+# Standardize hospital names
+df <- df |>
+  dplyr::mutate(
+    hospital_group = dplyr::case_when(
+      stringr::str_detect(tolower(.data[[hospital_col]]), "al shifa") ~ "Al Shifa Medical Hospital",
+      stringr::str_detect(tolower(.data[[hospital_col]]), "european") ~ "European Hospital",
+      stringr::str_detect(tolower(.data[[hospital_col]]), "nasser") ~ "Nasser Hospital",
+      TRUE ~ NA_character_
+    )
+  ) |>
+  dplyr::filter(!is.na(hospital_group))
+
+hospital_levels <- c(
+  "Al Shifa Medical Hospital",
+  "European Hospital",
+  "Nasser Hospital"
+)
+
+df$hospital_group <- factor(df$hospital_group, levels = hospital_levels)
+
+# ---------------------------
+# 2. Create Summaries
+# ---------------------------
+
+injury_types <- c("Burn","CMF","Limb","NTD","Soft Tissue","Wound Care")
+
+injury_summary <- df |>
+  dplyr::select(hospital_group, dplyr::all_of(injury_types)) |>
+  tidyr::pivot_longer(-hospital_group, names_to="type", values_to="count") |>
+  dplyr::mutate(count = as.numeric(count)) |>
+  dplyr::group_by(hospital_group, type) |>
+  dplyr::summarise(total = sum(count, na.rm=TRUE), .groups="drop")
+
+attack_types <- c(
+  "Air/drone strike",
+  "Ground Attacks",
+  "Shelling/artillery/missile attack",
+  "Civil Unrest",
+  "Other"
+)
+
+attack_summary <- df |>
+  dplyr::select(hospital_group, dplyr::all_of(attack_types)) |>
+  tidyr::pivot_longer(-hospital_group, names_to="type", values_to="count") |>
+  dplyr::mutate(count = as.numeric(count)) |>
+  dplyr::group_by(hospital_group, type) |>
+  dplyr::summarise(total = sum(count, na.rm=TRUE), .groups="drop")
+
+# ---------------------------
+# 3. Styling (Readable)
+# ---------------------------
+
+plot_theme <- theme_minimal(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.text.y = element_text(size = 12),
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    legend.position = "none"
+  )
+
+injury_max <- max(injury_summary$total, na.rm = TRUE) * 1.2
+attack_max <- max(attack_summary$total, na.rm = TRUE) * 1.2
+
+make_plot <- function(data, hosp, ymax, title_text) {
+  ggplot(
+    data |> dplyr::filter(hospital_group == hosp),
+    aes(x = type, y = total, fill = type)
+  ) +
+    geom_col(width = 0.75) +
+    scale_y_continuous(
+      limits = c(0, ymax),
+      breaks = scales::pretty_breaks(n = 6)
+    ) +
+    labs(title = title_text, x = NULL, y = "Total Count") +
+    plot_theme
+}
+
+# ---------------------------
+# 4. Build Six Plots
+# ---------------------------
+
+# Injury row
+p1 <- make_plot(injury_summary, hospital_levels[1], injury_max, hospital_levels[1])
+p2 <- make_plot(injury_summary, hospital_levels[2], injury_max, hospital_levels[2])
+p3 <- make_plot(injury_summary, hospital_levels[3], injury_max, hospital_levels[3])
+
+# Attack row
+p4 <- make_plot(attack_summary, hospital_levels[1], attack_max, hospital_levels[1])
+p5 <- make_plot(attack_summary, hospital_levels[2], attack_max, hospital_levels[2])
+p6 <- make_plot(attack_summary, hospital_levels[3], attack_max, hospital_levels[3])
+
+# ---------------------------
+# 5. Arrange Layout
+# ---------------------------
+
+(p1 | p2 | p3) /
+(p4 | p5 | p6)
+```
+
+
